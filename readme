@@ -3,16 +3,38 @@ Error codes
 201-created
 400-client bad request
 401-unauthorized
-403-authorized but acess restricted (user trying to acess admin routes)
+403-authorized but access restricted (user trying to access admin routes)
 409-conflict (username already exist)
 429-rate limiting
 500-internal server error
 
 Routes
 
-Movie routes
-POST /movies -add movies 
-GET /movies?name=value  -fetch movies
-GET /movies/:id  -get movie by id
+Movie Routes
+POST /movie - Add a new movie
+GET /movie - Fetch all movies (limit 20) or search by name using ?name=value
+GET /movie/:id - Get movie by ID
+GET /movie/:id/shows - Get shows available for the movie (theaters, screens, shows)
 
-Theater routes
+Theater Routes
+POST /theater - Add a theater
+GET /theater - Get all theaters
+GET /theater/location/:location - Search theaters by location
+GET /theater/name/:name - Search theaters by name
+
+Screen Routes
+POST /screen - Add a screen
+GET /screen?theaterId=value - Get screens by theater ID
+GET /screen/:id - Get screen by ID
+
+Show Routes
+POST /show - Add a show
+GET /show/:id - Get show by ID
+GET /show?theaterId=value - Get shows by theater ID
+
+Seat Routes
+POST /seat - Add seats for a screen
+GET /seat?screenId=value - Get seats by screen ID
+
+General Routes
+GET / - Health check, returns server status

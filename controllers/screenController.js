@@ -1,6 +1,6 @@
 const {asyncHandler}=require("../errorHandler/asyncHandler")
-const {pool}=require("../config/dbConnection");
-const { AppError } = require("../errorHandler/appError");
+const {pool}=require("../config/dbConnection")
+const { AppError } = require("../errorHandler/appError")
 
 const addScreen=asyncHandler(async(req,res)=>{
     const {theaterId,seats,screenNo}=req.body;
