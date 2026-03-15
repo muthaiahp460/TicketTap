@@ -1,0 +1,18 @@
+const express=require('express')
+const app=express()
+app.use(express.json())
+const {errorMiddleware}=require("./middleware/errorMiddleware")
+const movieRoute=require("./routes/movieRoute")
+const theaterRoute=require("./routes/theaterRoute")
+const screenRouter=require("./routes/screenRouter")
+const showRoute=require("./routes/showRoute")
+app.get('/',(req,res)=>{
+    res.json({message:"Server is running"})
+})
+app.use("/movie",movieRoute)
+app.use("/theater",theaterRoute)
+app.use("/screen",screenRouter)
+app.use("/show",showRoute)
+
+app.use(errorMiddleware)
+app.listen(3000)
