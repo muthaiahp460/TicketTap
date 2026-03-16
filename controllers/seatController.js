@@ -52,6 +52,17 @@ const addSeat=asyncHandler(async(req,res)=>{
     return res.status(201).json({message:"Seat layout created successfully"})
 }) 
 
+// const getSeats=asyncHandler(async(req,res)=>{ //show prices after adding showPrices
+//     const screenId=req.query.screenId
+//     if(!screenId)
+//         throw new AppError(400,"Screen Id cannot be empty")
+//     const [existingScreen]=await pool.query("select * from screens where id=?",[screenId])
+//     if(existingScreen.length==0)
+//         throw new AppError(404,"screen doesnt exist")
+//     const [seats]=await pool.query("select * from seats where screenId=?",[screenId])
+//     return res.status(200).json({message:"success",data:seats})
+// })
+
 const getSeats=asyncHandler(async(req,res)=>{ //show prices after adding showPrices
     const screenId=req.query.screenId
     if(!screenId)
@@ -59,8 +70,39 @@ const getSeats=asyncHandler(async(req,res)=>{ //show prices after adding showPri
     const [existingScreen]=await pool.query("select * from screens where id=?",[screenId])
     if(existingScreen.length==0)
         throw new AppError(404,"screen doesnt exist")
-    const [seats]=await pool.query("select * from seats where screenId=?",[screenId])
-    return res.status(200).json({message:"success",data:seats})
+    const [seats]=await pool.query(`select seats.id,seats.rowNo,seats.seatNo,
+                                   concat(seats.rowNo,seats.seatNo) as seat,seats.type,showPrice.price
+                                   from seats inner join showPrice on seats.type=showPrice.seatType`)
+
+    const data=[]
+    for(let seat of seats){
+        if(data.length==0){
+            data.push(
+                {   price:seat.price,
+                    rows:seat.rowNo,
+                    seats:[seat.seat]   
+                }
+            )
+            continue;
+        }
+        for(i=0;i<data.length;i++){
+            if(data[i].rows==seat.rowNo){
+                data[i].seats.push(seat.seat)
+                break;
+            }
+        }
+        if(i==data.length)
+        {
+            data.push(
+                {
+                    price:seat.price,
+                    rows:seat.rowNo,
+                    seats:[seat.seat]
+                }
+            )
+        }
+    }
+    return res.status(200).json({message:"success",data:data})
 })
 
 const deleteSeats=asyncHandler(async(req,res)=>{
