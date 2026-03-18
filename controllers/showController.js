@@ -4,8 +4,6 @@ const { AppError } = require("../errorHandler/appError");
 
 const addShow=asyncHandler(async(req,res)=>{ //later get the screenId with the help of theaterId stored in the jwt
     const {movieId,screenId,startTime,endTime,showDate}=req.body;
-    if(!movieId || !screenId || !startTime || !endTime || !showDate)
-        throw new AppError(400,"Fields cannot be null")
     
     const [existingShow]=await pool.query("select * from shows where screenId=? and showDate=? and ?<=endTime",[screenId,showDate,startTime])
     if(existingShow.length>0)

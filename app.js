@@ -10,7 +10,7 @@ const seatRote=require("./routes/seatRouter")
 app.get('/',(req,res)=>{
     res.json({message:"Server is running"})
 })
-app.use("/movie",movieRoute)
+app.use("/movies",movieRoute)
 app.use("/theater",theaterRoute)
 app.use("/screen",screenRouter)
 app.use("/show",showRoute)

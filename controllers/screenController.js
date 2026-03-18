@@ -4,8 +4,7 @@ const { AppError } = require("../errorHandler/appError")
 
 const addScreen=asyncHandler(async(req,res)=>{
     const {theaterId,seats,screenNo}=req.body;
-    if(!theaterId || !seats || !screenNo)
-        throw new AppError(400,"Fields cannot be null")
+    
     const [exisitngScreen]=await pool.query("select * from screens where theaterId=? and screenNo=?",[theaterId,screenNo])
     if(exisitngScreen.length>0)
         throw new AppError(400,`screen ${screenNo} already exist`)

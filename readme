@@ -10,6 +10,164 @@ Error codes
 
 Routes
 
+Theater Routes
+    POST /theater
+    Description:Adding new theater
+    Body:
+        {
+            "name":"PVR INOX",
+            "location":"Coimbatore"
+        }
+
+    GET /theater
+    Description:Get all theaters (limit 20)
+    Response:
+        {
+            "message": "success",
+            "data": [
+                {
+                    "id": 1,
+                    "name": "Alankar",
+                    "location": "Ponnamaravathi"
+                },
+                {
+                    "id": 3,
+                    "name": "pvr inox",
+                    "location": "peelamedu"
+                }
+            ]
+        }
+
+    GET /theater/location/polla
+    Response:
+        {
+            "message": "success",
+            "data": [
+                {
+                    "id": 4,
+                    "name": "thangam cinemas",
+                    "location": "pollachi"
+                },
+                {
+                    "id": 7,
+                    "name": "Rajan cinemas",
+                    "location": "pollachi"
+                }
+            ]
+        }
+    
+    
+Movie Routes:
+POST /movies
+Request:
+    {
+    "name":"Mass",
+    "duration":163,
+    "language":"tamil",
+    "genre":"Action",
+    "cast":"surya",
+    "rating":7.1
+    }
+Response:
+    {
+    "message": "Movie added successfully",
+    "movieId": 9
+    }
+
+GET /movies?name=?
+Response:                   //if name not provided
+    {
+    "message": "success",
+    "data": [
+        {
+            "id": 1,
+            "name": "LEO",
+            "language": "tamil",
+            "rating": 8.1
+        },
+        {
+            "id": 5,
+            "name": "master",
+            "language": "tamil",
+            "rating": 8.3
+        }
+    ]}
+
+GET /movies?name=mas
+Response:
+    {
+    "message": "success",
+    "data": [
+        {
+            "id": 5,
+            "name": "master",
+            "language": "tamil",
+            "rating": 8.3,
+            "year": 2021
+        },
+        {
+            "id": 7,
+            "name": "master",
+            "language": "telugu",
+            "rating": 8.3,
+            "year": 2026
+        },
+        {
+            "id": 8,
+            "name": "Massu Engira Masilamani",
+            "language": "tamil",
+            "rating": 7.1,
+            "year": 2026
+        }
+    ]
+}
+
+
+screen Routes:
+
+POST /screen
+Request:
+    {
+        "theaterId":1,
+        "screenNo":1,
+        "seats":100
+    }
+Response:
+    {
+        "message": "screen created successfully"
+    }
+
+GET screen?theaterId=3
+Response:
+    {
+        "message": "success",
+        "data":[
+            {
+                "id": 3,
+                "screenNo": 1
+            },
+            {       
+                "id": 4,
+                "screenNo": 3
+            }
+        ]
+    }
+
+GET screen/3
+
+Response:
+    {
+        "message": "success",
+        "data": {       
+            "id": 3,
+            "screenNo": 1,
+            "name": "master",   
+            "language": "tamil"
+        }
+    }
+
+
+
 Movie Routes
 POST /movie - Add a new movie
 GET /movie - Fetch all movies (limit 20) or search by name using ?name=value

@@ -4,20 +4,15 @@ const { AppError } = require("../errorHandler/appError")
 
 const addSeat=asyncHandler(async(req,res)=>{   
     const {screenId,rows,seatCount,premium,lounge}=req.body;
-    if(!screenId || !rows || !seatCount || !premium || !lounge)
-        throw new AppError(400,"Fields cannot be empty")
-    
-    if(!Array.isArray(rows) || !Array.isArray(premium) || !Array.isArray(lounge))
-        throw new AppError(400,"Input field format invalid")
-
-    if(typeof(seatCount)!="number" || seatCount<=0)
-        throw new AppError(400,"Invalid seat count")
 
     const [existingScreen]=await pool.query("select * from screens where id=?",[screenId])
     if(existingScreen.length==0)
         throw new AppError(404,"screen not found")
 
     const [existingSeating]=await pool.query("select id from seats where screenId=?",[screenId])
+    if(existingSeating.length>0)
+        throw new AppError(409,`seating arrangement for screen ${screenId} already exist`)
+
     const rowSet=new Set(rows),premiumSet=new Set(premium),loungeSet=new Set(lounge)
     for(let p of premium){
         if(!rowSet.has(p))
@@ -34,9 +29,6 @@ const addSeat=asyncHandler(async(req,res)=>{
             throw new AppError(400,"Same row cannot be both Lounge and Premium")
     }
 
-    if(existingSeating.length>0)
-        throw new AppError(409,`seating arrangement for screen ${screenId} already exist`)
-
     const arr=[];
     for(let seat of rows){
         for(let i=1;i<=seatCount;i++){
@@ -52,18 +44,7 @@ const addSeat=asyncHandler(async(req,res)=>{
     return res.status(201).json({message:"Seat layout created successfully"})
 }) 
 
-// const getSeats=asyncHandler(async(req,res)=>{ //show prices after adding showPrices
-//     const screenId=req.query.screenId
-//     if(!screenId)
-//         throw new AppError(400,"Screen Id cannot be empty")
-//     const [existingScreen]=await pool.query("select * from screens where id=?",[screenId])
-//     if(existingScreen.length==0)
-//         throw new AppError(404,"screen doesnt exist")
-//     const [seats]=await pool.query("select * from seats where screenId=?",[screenId])
-//     return res.status(200).json({message:"success",data:seats})
-// })
-
-const getSeats=asyncHandler(async(req,res)=>{ //show prices after adding showPrices
+const getSeats=asyncHandler(async(req,res)=>{
     const screenId=req.query.screenId
     if(!screenId)
         throw new AppError(400,"Screen Id cannot be empty")
@@ -136,9 +117,7 @@ const setSeatPrices=asyncHandler(async(req,res)=>{
     const [showDetails]=await pool.query("select screenId from shows where id=?",[showId])
     if(showDetails.length==0)
         throw new AppError(404,"Show not found")
-    const [existingScreen]=await pool.query("select id from screens where id=?",[showDetails[0].screenId])
-    if(existingScreen.length==0)
-        throw new AppError(404,"Show Screen doesnt exist")
+    
     const [existingSeats]=await pool.query("select id from seats where screenId=?",[existingScreen[0].id])
     if(existingSeats.length==0)
         throw new AppError(404,"seating arrangement doesnt exist for this screen")
@@ -168,7 +147,5 @@ const setSeatPrices=asyncHandler(async(req,res)=>{
         return res.status(200).json({message:"Seat prices set successfully"})
     }
 })
-
-
 
 module.exports={addSeat,getSeats,deleteSeats,setSeatPrices}

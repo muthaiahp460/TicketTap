@@ -41,7 +41,7 @@ const getMoviesById=asyncHandler(async(req,res)=>{
 
 const getMovieshows=asyncHandler(async(req,res)=>{
     const movieId=req.params.id;
-    const [data]=await pool.query("select shows.startTime,screens.screenNo,theaters.name from screens inner join shows inner join theaters on shows.screenId=screens.id and screens.theaterId=theaters.id where shows.movieId=?",[movieId]);
+    const [data]=await pool.query("select shows.startTime,screens.screenNo,theaters.name as theaterName from screens inner join shows inner join theaters on shows.screenId=screens.id and screens.theaterId=theaters.id where shows.movieId=?",[movieId]);
     return res.status(200).json({message:"success",data:data})
 })
 
