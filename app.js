@@ -10,7 +10,7 @@ const screenRouter=require("./routes/screenRouter")
 const showRoute=require("./routes/showRoute")
 const seatRote=require("./routes/seatRouter")
 const authRoute=require("./routes/authRouter")
-
+const bookRoute=require("./routes/bookingRouter")
 app.get('/',(req,res)=>{
     res.json({message:"Server is running"})
 })
@@ -20,6 +20,7 @@ app.use("/screen",screenRouter)
 app.use("/show",showRoute)
 app.use("/seat",seatRote)
 app.use("/auth",authRoute)
+app.use("/booking",bookRoute)
 
 app.use(errorMiddleware)
 app.listen(3000)

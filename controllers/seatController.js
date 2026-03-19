@@ -147,4 +147,4 @@ const setSeatPrices=asyncHandler(async(req,res)=>{
     }
 })
 
-module.exports={addSeat,getSeats,deleteSeats,setSeatPrices,getSeatsByShowId}
+module.exports={addSeat,getSeats,deleteSeats,setSeatPrices}
