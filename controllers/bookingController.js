@@ -32,7 +32,7 @@ const bookTickets=asyncHandler(async(req,res,next)=>{
              where showSeats.id in (${seatIds})`)
         const total=totalPrice[0].price;
         console.log(req.user)
-        const booking=await connection.query("insert into bookings (userId,showId,totalAmount) values (?,?,?)",[req.user.id,showId,total])
+        const booking=await connection.query("insert into bookings (userId,showId,totalAmount,status) values (?,?,?,?)",[req.user.id,showId,total,"pending"])
         console.log(booking)
         const data=[]
         for(seat of seatIds){
@@ -51,4 +51,40 @@ const bookTickets=asyncHandler(async(req,res,next)=>{
     }
 })
 
-module.exports={bookTickets}
+const payment=asyncHandler(async(req,res,next)=>{
+    const {bookingId}=req.body
+    const connection=await pool.getConnection()
+    try{
+        await connection.beginTransaction()
+        const currTime=getCurrTime();
+        const [show]=await connection.query("select showId from bookings where id=?",[bookingId])
+        const showId=show[0].showId
+        const [bookedSeats]=await pool.query("select showSeats.seatId from bookingSeat inner join showSeats on bookingSeat.seatId=showSeats.seatId and bookingSeat.showId=showSeats.showId where bookingSeat.bookingId=?",bookingId)
+        
+        const seatsBooked=[]
+        for(seat of bookedSeats)
+            seatsBooked.push(seat.seatId)
+
+        const seatId=bookedSeats[0].seatId
+        const [lockedSeats]=await pool.query(`select id from showSeats where seatId=? and status=? and expiresAt<? and showId=?`,[seatId,"pending",currTime,showId])
+
+        if(lockedSeats.length==0)
+            throw new AppError(410,"Seat released payment will be refunded within 2-3 working days")
+
+        await pool.query(`update showSeats set status=? where seatId in (${seatsBooked})`,["booked"])
+        await pool.query("update bookings set status=? where id=?",["completed",bookingId])
+        await connection.commit()
+
+        return res.status(200).json({message:"booking sucessful"})
+    }
+    catch(err){
+        await connection.rollback()
+        next(err)
+    }
+    finally{
+        await connection.release()
+    }
+
+})
+
+module.exports={bookTickets,payment}
