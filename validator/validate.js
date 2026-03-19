@@ -50,4 +50,22 @@ const validateCreateSeat=[
     .isArray().withMessage("Lounge should be an array")
 ]
 
-module.exports={validateCreateTheater, validateCreateMovie, validateCreateScreen, validateCreateShow, validateCreateSeat}
+const validateRegister=[
+    body("name").notEmpty().withMessage("name should not be empty")
+    .isString().withMessage("Name should be a string"),
+    body("email").isEmail().withMessage("Invalid Email"),
+    body("phoneNo")
+    .matches(/^[6-9]\d{9}$/)
+    .withMessage("Phone number must be 10 digits and start with 6-9"),
+    body("password").isStrongPassword({
+        minLength:6,
+        minUppercase:1,
+        minLowercase:1,
+        minNumbers:1,
+        minSymbols:1
+    }).withMessage("Password is weak"),
+    body("role").notEmpty().withMessage("role cannot be empty")
+
+]
+
+module.exports={validateCreateTheater, validateCreateMovie, validateCreateScreen, validateCreateShow, validateCreateSeat,validateRegister}

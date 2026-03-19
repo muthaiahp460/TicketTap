@@ -33,14 +33,14 @@ const addSeat=asyncHandler(async(req,res)=>{
     for(let seat of rows){
         for(let i=1;i<=seatCount;i++){
             if(premiumSet.has(seat))
-                arr.push([screenId,seat,i,"premium"])
+                arr.push([screenId,seat,i,"premium","available"])
             else if(loungeSet.has(seat))
-                arr.push([screenId,seat,i,"lounge"])
+                arr.push([screenId,seat,i,"lounge","available"])
             else
-                arr.push([screenId,seat,i,"normal"])
+                arr.push([screenId,seat,i,"normal","available"])
         }
     }   
-    await pool.query("insert into seats (screenId,rowNo,seatNo,type) values ?",[arr])
+    await pool.query("insert into seats (screenId,rowNo,seatNo,type,status) values ?",[arr])
     return res.status(201).json({message:"Seat layout created successfully"})
 }) 
 
@@ -117,8 +117,7 @@ const setSeatPrices=asyncHandler(async(req,res)=>{
     const [showDetails]=await pool.query("select screenId from shows where id=?",[showId])
     if(showDetails.length==0)
         throw new AppError(404,"Show not found")
-    
-    const [existingSeats]=await pool.query("select id from seats where screenId=?",[existingScreen[0].id])
+    const [existingSeats]=await pool.query("select id from seats where screenId=?",[showDetails[0].screenId])
     if(existingSeats.length==0)
         throw new AppError(404,"seating arrangement doesnt exist for this screen")
 
@@ -148,4 +147,4 @@ const setSeatPrices=asyncHandler(async(req,res)=>{
     }
 })
 
-module.exports={addSeat,getSeats,deleteSeats,setSeatPrices}
+module.exports={addSeat,getSeats,deleteSeats,setSeatPrices,getSeatsByShowId}
