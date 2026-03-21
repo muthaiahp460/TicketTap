@@ -2,6 +2,11 @@ const {pool}=require("../config/dbConnection")
 const {AppError}=require("../errorHandler/appError") 
 const {asyncHandler}=require("../errorHandler/asyncHandler")
 
+const getCurrTime=()=>{
+    const now = new Date();
+    return now.toISOString().slice(0, 19).replace('T', ' ');
+}
+
 const addMovie=asyncHandler(async(req,res)=>{
     const {name,duration,language,genre,cast,rating}=req.body
     if(!name || !duration || !language || !genre || !cast || !rating)
@@ -45,4 +50,14 @@ const getMovieshows=asyncHandler(async(req,res)=>{
     return res.status(200).json({message:"success",data:data})
 })
 
-module.exports={addMovie,getMovies,getMoviesById,getMovieshows}
+const getRecentBookings=asyncHandler(async(req,res)=>{
+    const movieId=req.params.id
+    const [result]=await pool.query(`
+        select sum(ticketCount) as totalTickets from
+        bookings inner join shows on bookings.showId=shows.id
+        where movieId=? and bookings.status=? and DATE_ADD(bookings.bookingDate,INTERVAL 24 hour)>=?`,[movieId,"completed",getCurrTime()]
+    )
+    return res.status(200).json({message:"success",data:result[0].totalTickets})
+})
+
+module.exports={addMovie,getMovies,getMoviesById,getMovieshows,getRecentBookings}

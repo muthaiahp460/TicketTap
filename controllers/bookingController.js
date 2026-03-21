@@ -17,6 +17,8 @@ const bookTickets=asyncHandler(async(req,res,next)=>{
     const connection=await pool.getConnection()
     try{
         const [screen]=await pool.query("select screenId from shows where id=?",showId)
+        if(!screen[0])
+            throw new AppError(404,`show ${showId} not found`)
         const screenId=screen[0].screenId
         console.log(screenId)
         const [theater]=await pool.query("select theaterId from screens where id=?",[screenId])
@@ -38,7 +40,7 @@ const bookTickets=asyncHandler(async(req,res,next)=>{
              const total=totalPrice[0].price;
         if(!total)
             throw new AppError(500,"Something went wrong")
-        const [booking]=await connection.query("insert into bookings (userId,showId,totalAmount,status,theaterId) values (?,?,?,?,?)",[req.user.id,showId,total,"pending",theaterId])
+        const [booking]=await connection.query("insert into bookings (userId,showId,totalAmount,status,theaterId,bookingDate,ticketCount) values (?,?,?,?,?,?,?)",[req.user.id,showId,total,"pending",theaterId,currTime,seatIds.length])
         console.log(booking)
         const data=[]
         for(let seat of seatIds){
@@ -120,6 +122,7 @@ const ordersbyId=asyncHandler(async(req,res)=>{
             bookingSeat.seatId,
             theaters.name AS theaterName,
             bookings.status,
+            
             shows.showDate,
             movies.name,
             bookings.totalAmount AS price
