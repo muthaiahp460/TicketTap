@@ -33,14 +33,14 @@ const addSeat=asyncHandler(async(req,res)=>{
     for(let seat of rows){
         for(let i=1;i<=seatCount;i++){
             if(premiumSet.has(seat))
-                arr.push([screenId,seat,i,"premium","available"])
+                arr.push([screenId,seat,i,"premium"])
             else if(loungeSet.has(seat))
-                arr.push([screenId,seat,i,"lounge","available"])
+                arr.push([screenId,seat,i,"lounge"])
             else
-                arr.push([screenId,seat,i,"normal","available"])
+                arr.push([screenId,seat,i,"normal"])
         }
     }   
-    await pool.query("insert into seats (screenId,rowNo,seatNo,type,status) values ?",[arr])
+    await pool.query("insert into seats (screenId,rowNo,seatNo,type) values ?",[arr])
     return res.status(201).json({message:"Seat layout created successfully"})
 }) 
 

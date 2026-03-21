@@ -16,6 +16,12 @@ const bookTickets=asyncHandler(async(req,res,next)=>{
         throw new AppError(400,"Invalid input format")
     const connection=await pool.getConnection()
     try{
+        const [screen]=await pool.query("select screenId from shows where id=?",showId)
+        const screenId=screen[0].screenId
+        console.log(screenId)
+        const [theater]=await pool.query("select theaterId from screens where id=?",[screenId])
+        const theaterId=theater[0].theaterId
+        console.log(theaterId)
         await connection.beginTransaction()
         const currTime=getCurrTime();
         
@@ -28,10 +34,11 @@ const bookTickets=asyncHandler(async(req,res,next)=>{
             `select sum(showPrice.price) as price from  showSeats inner join  seats on showSeats.seatId=seats.id 
              inner join showPrice on showSeats.showId=showPrice.showId and seats.type=showPrice.seatType
              where showSeats.seatId in (?) and showSeats.showId=?`,[seatIds,showId])
-        const total=totalPrice[0].price;
+        console.log(totalPrice)
+             const total=totalPrice[0].price;
         if(!total)
             throw new AppError(500,"Something went wrong")
-        const [booking]=await connection.query("insert into bookings (userId,showId,totalAmount,status) values (?,?,?,?)",[req.user.id,showId,total,"pending"])
+        const [booking]=await connection.query("insert into bookings (userId,showId,totalAmount,status,theaterId) values (?,?,?,?,?)",[req.user.id,showId,total,"pending",theaterId])
         console.log(booking)
         const data=[]
         for(let seat of seatIds){
@@ -91,6 +98,40 @@ const payment=asyncHandler(async(req,res,next)=>{
 
 const orders=asyncHandler(async(req,res)=>{
     const userId=req.user.id
+    const [result]=await pool.query(
+        `select bookings.id,theaters.name as theaterName,bookings.status,shows.showDate,movies.name,bookings.totalAmount as price
+        from bookings inner join shows inner join movies  inner join theaters on 
+        bookings.showId=shows.id and shows.movieId=movies.id and bookings.theaterId=theaters.id
+        where bookings.userId=?`,[userId]
+    )
+    return res.status(200).json({message:"success",data:result})
 })
 
-module.exports={bookTickets,payment,orders}
+const ordersbyId=asyncHandler(async(req,res)=>{
+    const bookingId=req.query.bookingId
+    console.log(bookingId)
+    const [user]=await pool.query("select userId from bookings where bookings.id=?",[bookingId])
+    if(user[0].userId!=req.user.id)
+        throw new AppError(401,"Entry restricted")
+
+    const [result] = await pool.query(
+        `SELECT 
+            bookings.id,
+            bookingSeat.seatId,
+            theaters.name AS theaterName,
+            bookings.status,
+            shows.showDate,
+            movies.name,
+            bookings.totalAmount AS price
+        FROM bookings
+        INNER JOIN shows ON bookings.showId = shows.id
+        INNER JOIN movies ON shows.movieId = movies.id
+        INNER JOIN theaters ON bookings.theaterId = theaters.id
+        INNER JOIN bookingSeat ON bookings.id = bookingSeat.bookingId
+        WHERE bookings.id = ?`,
+        [bookingId]
+    );
+    return res.status(200).json({message:"success",data:result})
+})
+
+module.exports={bookTickets,payment,orders,ordersbyId}
