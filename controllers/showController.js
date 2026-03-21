@@ -51,7 +51,7 @@ const getShowByTheaterId=asyncHandler(async(req,res)=>{
     return res.status(200).json({message:"success",data:shows})
 })
 
-const getSeatsByShowId=asyncHandler(async(req,res,next)=>{
+const getSeatsByShowId=asyncHandler(async(req,res,next)=>{ //see ticket price for a show
     const showId=req.params.id
     const [availableSeats]=await pool.query(
         `select showSeats.id,seats.rowNo,seats.seatNO,concat(seats.rowNo,seats.seatNO) as seatLabel,seats.type,showPrice.price,showSeats.status from 

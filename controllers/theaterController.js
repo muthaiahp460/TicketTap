@@ -9,7 +9,7 @@ const addTheater=asyncHandler(async(req,res)=>{
     const [existing]=await pool.query("select name from theaters where name=? and location=?",[name,location]);
     if(existing.length>0)
         throw new AppError(409,`Theater with name ${name} already exist`)
-    const [result]=await pool.query("insert into theaters (name,location) values(?,?)",[name,location])
+    const [result]=await pool.query("insert into theaters (name,location,userId) values(?,?,?)",[name,location,req.user.id])
     if(result.affectedRows==0)
         throw new AppError(500,`cannot able to add theater ${name}`)
     return res.status(201).json({message:"success",id:result.insertId})
@@ -34,5 +34,10 @@ const searchByName=asyncHandler(async(req,res)=>{
     return res.status(200).json({message:"success",data:theaters})
 })
 
+const getMytheaters=asyncHandler(async(req,res)=>{
+    const [theaters]=await pool.query("select * from theaters where userId=?",[req.user.id])
+    return res.status(200).json({message:"success",data:theaters})
+})
 
-module.exports={addTheater,search,searchByLocation,searchByName}
+
+module.exports={addTheater,search,searchByLocation,searchByName,getMytheaters}

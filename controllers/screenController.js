@@ -14,8 +14,11 @@ const addScreen=asyncHandler(async(req,res)=>{
     return res.status(201).json({message:"screen created successfully"})
 })
 
-const getScreen=asyncHandler(async(req,res)=>{ //update it with jwt payload later 
+const getScreen=asyncHandler(async(req,res)=>{ 
     const theaterId=req.query.theaterId
+    const [owner]=await pool.query("select userId from theaters where id=?",[theaterId])
+    if(owner[0].userId!=req.user.id)
+        throw new AppError(401,"Acess restricted")
     if(!theaterId)
         throw new AppError(400,"Theater ID is required")
     const [screens]=await pool.query("select id,screenNo from screens where theaterId=?",[theaterId])

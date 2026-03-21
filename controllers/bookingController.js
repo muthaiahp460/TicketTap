@@ -18,27 +18,28 @@ const bookTickets=asyncHandler(async(req,res,next)=>{
     try{
         await connection.beginTransaction()
         const currTime=getCurrTime();
-        const [available]=await connection.query(`select seatId from showSeats where seatId in (${seatIds}) and (status=? or (status=? and expiresAt<?)) and showId=?`,["available","pending",currTime,showId])
-        console.log(available)
-        if(available.length!=seatIds.length)
-            throw new AppError(404,"some selected seats are not available")
         
-        const updatedRows=await connection.query(`update showSeats set status=?,expiresAt=DATE_ADD(?,INTERVAL 5 MINUTE) where seatId in (${seatIds})`,["pending",currTime])
-        if(updatedRows.affectedRows!=seatIds.affectedRows)
-            throw new AppError(500,"Something went wromg")
+        const updatedRows=await connection.query(`update showSeats set status=?,expiresAt=DATE_ADD(?,INTERVAL 5 MINUTE) where showId=? and seatId in (?) and (status=? or (status=? and expiresAt<?))`,["pending",currTime,showId,seatIds,"available","pending",currTime])
+        console.log(updatedRows[0].affectedRows)
+        if(updatedRows[0].affectedRows!=seatIds.length)
+            throw new AppError(404,"some selected seats are not available")
+
         const [totalPrice]=await connection.query(
             `select sum(showPrice.price) as price from  showSeats inner join  seats on showSeats.seatId=seats.id 
              inner join showPrice on showSeats.showId=showPrice.showId and seats.type=showPrice.seatType
-             where showSeats.id in (${seatIds})`)
+             where showSeats.seatId in (?) and showSeats.showId=?`,[seatIds,showId])
         const total=totalPrice[0].price;
-        const booking=await connection.query("insert into bookings (userId,showId,totalAmount,status) values (?,?,?,?)",[req.user.id,showId,total,"pending"])
+        if(!total)
+            throw new AppError(500,"Something went wrong")
+        const [booking]=await connection.query("insert into bookings (userId,showId,totalAmount,status) values (?,?,?,?)",[req.user.id,showId,total,"pending"])
+        console.log(booking)
         const data=[]
-        for(seat of seatIds){
-            data.push([booking[0].insertId,seat,showId])
+        for(let seat of seatIds){
+            data.push([booking.insertId,seat,showId])
         }
         await connection.query(`insert into bookingSeat (bookingId,seatId,showId) values ?`,[data])
         await connection.commit()
-        return res.status(201).json({message:"Movie booked successfully"})
+        return res.status(201).json({message:"Movie booked inititated",bookingDetails:{id:booking.insertId,price:total}})
     }
     catch(err){
         await connection.rollback()
@@ -57,14 +58,14 @@ const payment=asyncHandler(async(req,res,next)=>{
         const currTime=getCurrTime();
         const [show]=await connection.query("select showId from bookings where id=?",[bookingId])
         const showId=show[0].showId
-        const [bookedSeats]=await connection.query("select showSeats.seatId from bookingSeat inner join showSeats on bookingSeat.seatId=showSeats.seatId and bookingSeat.showId=showSeats.showId where bookingSeat.bookingId=?",bookingId)
+        const [bookedSeats]=await connection.query("select showSeats.seatId from bookingSeat inner join showSeats on bookingSeat.seatId=showSeats.seatId and bookingSeat.showId=showSeats.showId where bookingSeat.bookingId=?",[bookingId])
         
         const seatsBooked=[]
         for(seat of bookedSeats)
             seatsBooked.push(seat.seatId)
 
         const seatId=bookedSeats[0].seatId
-        const [lockedSeats]=await connection.query(`select id from showSeats where seatId=? and status=? and expiresAt<? and showId=?`,[seatId,"pending",currTime,showId])
+        const [lockedSeats]=await connection.query(`select id from showSeats where seatId=? and status=? and expiresAt>? and showId=?`,[seatId,"pending",currTime,showId])
 
         if(lockedSeats.length==0){
             await connection.query("insert into refund (bookingId) values (?)",[bookingId])
@@ -72,7 +73,7 @@ const payment=asyncHandler(async(req,res,next)=>{
             throw new AppError(410,"Seat released payment will be refunded within 2-3 working days")
         }
 
-        await connection.query(`update showSeats set status=? where seatId in (${seatsBooked})`,["booked"])
+        await connection.query(`update showSeats set status=? where seatId in (?) and showId=?`,["booked",seatsBooked,showId])
         await connection.query("update bookings set status=? where id=?",["completed",bookingId])
         await connection.commit()
 
@@ -88,4 +89,8 @@ const payment=asyncHandler(async(req,res,next)=>{
 
 })
 
-module.exports={bookTickets,payment}
+const orders=asyncHandler(async(req,res)=>{
+    const userId=req.user.id
+})
+
+module.exports={bookTickets,payment,orders}
