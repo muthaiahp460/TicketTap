@@ -1,5 +1,6 @@
 const express=require('express')
 const app=express()
+const ratelimit=require("express-rate-limit")
 const cookieParser=require("cookie-parser")
 app.use(cookieParser())
 app.use(express.json())
@@ -12,6 +13,17 @@ const seatRote=require("./routes/seatRouter")
 const authRoute=require("./routes/authRouter")
 const bookRoute=require("./routes/bookingRouter")
 const analysisRoute=require("./routes/analysisRouter")
+
+const limitter=ratelimit(
+    {
+        windowMs:1*60*1000,
+        limit:5
+    }
+)
+
+
+app.use(limitter)
+
 app.get('/',(req,res)=>{
     res.json({message:"Server is running"})
 })
