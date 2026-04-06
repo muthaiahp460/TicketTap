@@ -1,4 +1,4 @@
-const {register, login}=require("../controllers/authController")
+const {register, login, registerUser, registerAdmin}=require("../controllers/authController")
 const express=require("express")
 const {validateRegister}=require("../validator/validate")
 const ratelimit=require("express-rate-limit")
@@ -11,7 +11,8 @@ const limitter=ratelimit(
     }
 )
 router.use(limitter)
-router.post("/register",validateRegister,validateMiddleware,register)
+router.post("/register/user",validateRegister,validateMiddleware,registerUser)
+router.post("/register/admin",validateRegister,validateMiddleware,registerAdmin)
 router.post("/login",login)
 
 module.exports=router

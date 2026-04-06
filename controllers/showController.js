@@ -27,7 +27,7 @@ const addShow=asyncHandler(async(req,res,next)=>{ //later get the screenId with 
     if(result.affectedRows===0)
         throw new AppError(500,"cannot able to add show")
     await connection.commit()
-    return res.status(201).json({message:"show added successfully"})
+    return res.status(201).json({message:"show added successfully",showId:result.insertId})
     }
     catch(err){
         await connection.rollback();
@@ -53,14 +53,26 @@ const getShowByTheaterId=asyncHandler(async(req,res)=>{
 
 const getSeatsByShowId=asyncHandler(async(req,res,next)=>{ //see ticket price for a show
     const showId=req.params.id
+
     const [availableSeats]=await pool.query(
-        `select showSeats.id,seats.rowNo,seats.seatNO,concat(seats.rowNo,seats.seatNO) as seatLabel,seats.type,showPrice.price,showSeats.status from 
+        `select showSeats.id,showSeats.seatId,seats.rowNo,seats.seatNO,concat(seats.rowNo,seats.seatNO) as seatLabel,seats.type,showPrice.price,showSeats.status from 
          showSeats inner join  seats on showSeats.seatId=seats.id 
          inner join showPrice on showSeats.showId=showPrice.showId and seats.type=showPrice.seatType
-         where showSeats.showId=? and showSeats.status=?`,[showId,"available"])
+         where showSeats.showId=? order by showSeats.id`,[showId])
 
     return res.status(200).json({message:"success",data:availableSeats})
 })
 
+const calculatePrice=asyncHandler(async(req,res)=>{
+    const {seatIds,showId}=req.body
+    if(seatIds.length<=0)
+        return res.status(200).json({})
+    const [totalPrice]=await pool.query(
+            `select sum(showPrice.price) as price from  showSeats inner join  seats on showSeats.seatId=seats.id 
+             inner join showPrice on showSeats.showId=showPrice.showId and seats.type=showPrice.seatType
+             where showSeats.seatId in (?) and showSeats.showId=?`,[seatIds,showId])
+    return res.status(200).json({price:totalPrice[0].price})
+})
 
-module.exports={addShow,getShowById,getShowByTheaterId,getSeatsByShowId}
+
+module.exports={addShow,getShowById,getShowByTheaterId,getSeatsByShowId,calculatePrice}

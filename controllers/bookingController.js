@@ -59,6 +59,8 @@ const bookTickets=asyncHandler(async(req,res,next)=>{
     }
 })
 
+
+
 const payment=asyncHandler(async(req,res,next)=>{
     const {bookingId}=req.body
     const connection=await pool.getConnection()
@@ -101,7 +103,8 @@ const payment=asyncHandler(async(req,res,next)=>{
 const orders=asyncHandler(async(req,res)=>{
     const userId=req.user.id
     const [result]=await pool.query(
-        `select bookings.id,theaters.name as theaterName,bookings.status,shows.showDate,movies.name,bookings.totalAmount as price
+        `select bookings.id,theaters.name as theaterName,bookings.status,shows.showDate,movies.name,bookings.totalAmount as price,
+        case when shows.showDate>DATE_ADD(Now(),interval 1 day) then 1 else 0 end as cancellable
         from bookings inner join shows inner join movies  inner join theaters on 
         bookings.showId=shows.id and shows.movieId=movies.id and bookings.theaterId=theaters.id
         where bookings.userId=?`,[userId]

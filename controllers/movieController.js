@@ -8,15 +8,15 @@ const getCurrTime=()=>{
 }
 
 const addMovie=asyncHandler(async(req,res)=>{
-    const {name,duration,language,genre,cast,rating}=req.body
-    if(!name || !duration || !language || !genre || !cast || !rating)
+    const {name,img,duration,language,genre,cast,rating,certificate}=req.body
+    if(!name || !duration || !language || !genre || !cast || !rating || !img || !certificate)
         throw new AppError(400,"Fields cannot be null")
     const now= new Date()
     const year=now.getFullYear()
     const [exisiting]=await pool.query("select * from movies where name=? and language=? and year=?",[name,language,year])
     if(exisiting.length===1)
         throw new AppError(409,"Movie already exist")
-    const [result]=await pool.query("insert into movies (name,duration,language,genre,cast,rating,year) values(?,?,?,?,?,?,?)",[name,duration,language,genre,cast,rating,year])
+    const [result]=await pool.query("insert into movies (name,movieImg,duration,language,genre,cast,rating,year,certificate) values(?,?,?,?,?,?,?,?,?)",[name,img,duration,language,genre,cast,rating,year,certificate])
     if(result.affectedRows===0)
         throw new AppError(500,"Cannot able to add Movie")
     return res.status(201).json({message:"Movie added successfully",movieId:result.insertId})
@@ -24,12 +24,13 @@ const addMovie=asyncHandler(async(req,res)=>{
 
 const getMovies=asyncHandler(async(req,res)=>{
     const movieName=req.query.name;
+    console.log(movieName)
     if(!movieName){
-        const [movies]=await pool.query("select id,name,language,rating from movies limit 20")
+        const [movies]=await pool.query("select id,name,language,rating,movieImg,certificate from movies limit 12")
         return res.status(200).json({message:"success",data:movies})
     }
     else{
-        const [movies]=await pool.query("select id,name,language,rating,year from movies where name like ?",[`${movieName}%`])
+        const [movies]=await pool.query("select id,name,language,rating,year,movieImg,certificate from movies where name like ?",[`${movieName}%`])
         if(movies.length==0)
             throw new AppError(404,"movie not found")
         return res.status(200).json({message:"success",data:movies})
@@ -46,7 +47,19 @@ const getMoviesById=asyncHandler(async(req,res)=>{
 
 const getMovieshows=asyncHandler(async(req,res)=>{
     const movieId=req.params.id;
-    const [data]=await pool.query("select shows.startTime,screens.screenNo,theaters.name as theaterName from screens inner join shows inner join theaters on shows.screenId=screens.id and screens.theaterId=theaters.id where shows.movieId=?",[movieId]);
+    const [data]=await pool.query(`
+        select shows.id,shows.startTime,screens.screenNo,theaters.name as theaterName,theaters.img as img,
+        Date(showDate) as fullDate,
+        Date_format(showDate,'%d') as date,
+        Date_format(showDate,'%M') as month,
+        Date_format(showDate,'%y') as year,
+        weekday(showDate) as day
+
+
+        from screens 
+        inner join shows on shows.screenId=screens.id
+        inner join theaters on screens.theaterId=theaters.id 
+        where shows.movieId=? order by fullDate asc`,[movieId]);
     return res.status(200).json({message:"success",data:data})
 })
 

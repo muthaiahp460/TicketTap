@@ -63,8 +63,7 @@ const validateRegister=[
         minLowercase:1,
         minNumbers:1,
         minSymbols:1
-    }).withMessage("Password is weak"),
-    body("role").notEmpty().withMessage("role cannot be empty")
+    }).withMessage("Password is weak")
 
 ]
 

@@ -13,17 +13,19 @@ const seatRote=require("./routes/seatRouter")
 const authRoute=require("./routes/authRouter")
 const bookRoute=require("./routes/bookingRouter")
 const analysisRoute=require("./routes/analysisRouter")
-
+const cors=require("cors")
 const limitter=ratelimit(
     {
         windowMs:1*60*1000,
-        limit:5
+        limit:50
     }
 )
 
 
 app.use(limitter)
-
+app.use(cors({
+    origin:"http://localhost:5173"
+}))
 app.get('/',(req,res)=>{
     res.json({message:"Server is running"})
 })

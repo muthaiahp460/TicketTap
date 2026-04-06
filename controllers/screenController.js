@@ -11,7 +11,7 @@ const addScreen=asyncHandler(async(req,res)=>{
     const [result]=await pool.query("insert into screens(theaterId,totalSeats,screenNo) values (?,?,?)",[theaterId,seats,screenNo])
     if(result.affectedRows===0)
         throw new AppError(500,"cannot able to add screen")
-    return res.status(201).json({message:"screen created successfully"})
+    return res.status(201).json({message:"screen created successfully",screenId:result.insertId})
 })
 
 const getScreen=asyncHandler(async(req,res)=>{ 

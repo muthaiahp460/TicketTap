@@ -196,3 +196,5 @@ GET /seat?screenId=value - Get seats by screen ID
 
 General Routes
 GET / - Health check, returns server status
+
+
