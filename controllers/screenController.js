@@ -3,12 +3,13 @@ const {pool}=require("../config/dbConnection")
 const { AppError } = require("../errorHandler/appError")
 
 const addScreen=asyncHandler(async(req,res)=>{
-    const {theaterId,seats,screenNo}=req.body;
-    
-    const [exisitngScreen]=await pool.query("select * from screens where theaterId=? and screenNo=?",[theaterId,screenNo])
-    if(exisitngScreen.length>0)
+    const {theaterId,screenNo,rows,cols}=req.body;
+    console.log("dsfsdfsdfsd")
+    console.log(theaterId)
+    const [exisitingScreen]=await pool.query("select * from screens where theaterId=? and screenNo=?",[theaterId,screenNo])
+    if(exisitingScreen.length>0)
         throw new AppError(400,`screen ${screenNo} already exist`)
-    const [result]=await pool.query("insert into screens(theaterId,totalSeats,screenNo) values (?,?,?)",[theaterId,seats,screenNo])
+    const [result]=await pool.query("insert into screens(theaterId,screenNo,rows,cols) values (?,?,?,?)",[theaterId,screenNo,rows,cols])
     if(result.affectedRows===0)
         throw new AppError(500,"cannot able to add screen")
     return res.status(201).json({message:"screen created successfully",screenId:result.insertId})
@@ -21,7 +22,7 @@ const getScreen=asyncHandler(async(req,res)=>{
         throw new AppError(401,"Acess restricted")
     if(!theaterId)
         throw new AppError(400,"Theater ID is required")
-    const [screens]=await pool.query("select id,screenNo from screens where theaterId=?",[theaterId])
+    const [screens]=await pool.query("select id,screenNo,rows,cols from screens where theaterId=?",[theaterId])
     return res.status(200).json({message:"success",data:screens})
 })
 

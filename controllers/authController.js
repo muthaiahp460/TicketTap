@@ -6,6 +6,7 @@ const {AppError}=require("../errorHandler/appError")
 require('dotenv').config()
 
 const registerUser=asyncHandler(async(req,res)=>{
+    console.log("user")
     const {name,email,phoneNo,password}=req.body
     const role="user"
     const [existingUser]=await pool.query("select email from users where email=?",[email])
@@ -15,8 +16,9 @@ const registerUser=asyncHandler(async(req,res)=>{
     const [result]=await pool.query("insert into users (name,email,password,phoneNo,role) values (?,?,?,?,?)",[name,email,hashedPassword,phoneNo,role])
     const token=jwt.sign({"id":result.insertId,"role":role},process.env.JWT_SECRET_KEY,{expiresIn:'1d'})
     res.cookie("token",token,{
-            httponly:true,
-            samesite:'strict'
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax"
         }
     )
     return res.status(201).json({message:"User created successfully"})

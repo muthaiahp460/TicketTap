@@ -24,9 +24,7 @@ const validateCreateScreen=[
     body("theaterId").notEmpty().withMessage("Theater Id should not be empty")
     .isInt({min:1}).withMessage("Theater Id should be valid"),
     body("screenNo").notEmpty().withMessage("Screen number should not be empty")
-    .isInt({min:1}).withMessage("ScreenNo number should be valid"),
-    body("seats").notEmpty().withMessage("Seats should not be empty")
-    .isInt({min:1}).withMessage("Seats should be valid")
+    .isInt({min:1}).withMessage("ScreenNo number should be valid")
 ]
 
 

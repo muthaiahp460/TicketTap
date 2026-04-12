@@ -2,88 +2,136 @@ const {asyncHandler}=require("../errorHandler/asyncHandler")
 const {pool}=require("../config/dbConnection")
 const { AppError } = require("../errorHandler/appError")
 
-const addSeat=asyncHandler(async(req,res)=>{   
-    const {screenId,rows,seatCount,premium,lounge}=req.body;
+const addSeat = asyncHandler(async (req, res) => {
+    const { screenId, layout } = req.body;
 
-    const [existingScreen]=await pool.query("select * from screens where id=?",[screenId])
-    if(existingScreen.length==0)
-        throw new AppError(404,"screen not found")
-
-    const [existingSeating]=await pool.query("select id from seats where screenId=?",[screenId])
-    if(existingSeating.length>0)
-        throw new AppError(409,`seating arrangement for screen ${screenId} already exist`)
-
-    const rowSet=new Set(rows),premiumSet=new Set(premium),loungeSet=new Set(lounge)
-    for(let p of premium){
-        if(!rowSet.has(p))
-            throw new AppError(400,"Premium should be valid row")
-    }
-    for(let l of lounge)
-    {
-        if(!rowSet.has(l))
-            throw new AppError(400,"Lounge should be valid row")
+    // 🔒 Validation
+    if (!screenId || !layout || !Array.isArray(layout)) {
+        throw new AppError(400, "Invalid input");
     }
 
-    for(let l of lounge){
-        if(premiumSet.has(l))
-            throw new AppError(400,"Same row cannot be both Lounge and Premium")
+    // 🔍 Check screen exists
+    const [existingScreen] = await pool.query(
+        "SELECT * FROM screens WHERE id=?",
+        [screenId]
+    );
+
+    if (existingScreen.length === 0) {
+        throw new AppError(404, "Screen not found");
     }
 
-    const arr=[];
-    for(let seat of rows){
-        for(let i=1;i<=seatCount;i++){
-            if(premiumSet.has(seat))
-                arr.push([screenId,seat,i,"premium"])
-            else if(loungeSet.has(seat))
-                arr.push([screenId,seat,i,"lounge"])
-            else
-                arr.push([screenId,seat,i,"normal"])
-        }
-    }   
-    await pool.query("insert into seats (screenId,rowNo,seatNo,type) values ?",[arr])
-    return res.status(201).json({message:"Seat layout created successfully"})
-}) 
+    // 🔥 DELETE existing layout
+    await pool.query(
+        "DELETE FROM seats WHERE screenId=?",
+        [screenId]
+    );
 
-const getSeats=asyncHandler(async(req,res)=>{
-    const screenId=req.query.screenId
-    if(!screenId)
-        throw new AppError(400,"Screen Id cannot be empty")
-    const [existingScreen]=await pool.query("select * from screens where id=?",[screenId])
-    if(existingScreen.length==0)
-        throw new AppError(404,"screen doesnt exist")
-    const [seats]=await pool.query(`select seats.id,seats.rowNo,seats.seatNo,
-                                   concat(seats.rowNo,seats.seatNo) as seat,seats.type,showPrice.price
-                                   from seats inner join showPrice on seats.type=showPrice.seatType`)
+    // 🔥 Flatten layout
+    const flatLayout = layout.flat().filter(Boolean);
 
-    const data=[]
-    for(let seat of seats){
-        if(data.length==0){
-            data.push(
-                {   price:seat.price,
-                    rows:seat.rowNo,
-                    seats:[seat.seat]   
-                }
-            )
+    const arr = [];
+
+    for (let seat of flatLayout) {
+
+        // 🔥 GAP → store NULL
+        if (!seat.rowNO || !seat.seatNo) {
+            arr.push([
+                screenId,
+                null,
+                null,
+                null   // 🔥 type = NULL
+            ]);
             continue;
         }
-        for(i=0;i<data.length;i++){
-            if(data[i].rows==seat.rowNo){
-                data[i].seats.push(seat.seat)
-                break;
-            }
-        }
-        if(i==data.length)
-        {
-            data.push(
-                {
-                    price:seat.price,
-                    rows:seat.rowNo,
-                    seats:[seat.seat]
-                }
-            )
-        }
+
+        arr.push([
+            screenId,
+            seat.rowNO,
+            seat.seatNo,
+            seat.type || "normal"
+        ]);
     }
-    return res.status(200).json({message:"success",data:data})
+
+    // 🔥 Bulk insert
+    if (arr.length > 0) {
+        await pool.query(
+            "INSERT INTO seats (screenId, rowNo, seatNo, type) VALUES ?",
+            [arr]
+        );
+    }
+
+    return res.status(201).json({
+        success: true,
+        message: "Seat layout created successfully"
+    });
+});
+
+const getSeats = asyncHandler(async (req, res) => {
+    const screenId = req.query.screenId
+
+    // 🔒 Validation
+    if (!screenId)
+        throw new AppError(400, "Screen Id cannot be empty")
+
+    // 🔍 Check screen exists
+    const [existingScreen] = await pool.query(
+        "SELECT * FROM screens WHERE id=?",
+        [screenId]
+    )
+
+    if (existingScreen.length === 0)
+        throw new AppError(404, "screen doesnt exist")
+
+    // 🔥 Fetch seats (IMPORTANT: keep order)
+    const [seats] = await pool.query(`
+        SELECT 
+            seats.id,
+            seats.rowNo,
+            seats.seatNo,
+            seats.type,
+            showPrice.price
+        FROM seats 
+        LEFT JOIN showPrice 
+            ON seats.type = showPrice.seatType
+        WHERE seats.screenId = ?
+        ORDER BY seats.id
+    `, [screenId])
+
+    const map = new Map()
+
+    let currentRow = null
+
+    for (let seat of seats) {
+
+        // 🔥 GAP (NULL row)
+        if (!seat.rowNo || !seat.seatNo) {
+            if (currentRow) {
+                map.get(currentRow).push(null)
+            }
+            continue
+        }
+
+        // 🔥 New row detected
+        if (seat.rowNo !== currentRow) {
+            currentRow = seat.rowNo
+            map.set(currentRow, [])
+        }
+
+        // 🔥 Push seat
+        map.get(currentRow).push({
+            id: seat.id,
+            rowNo: seat.rowNo,
+            seatNO: seat.seatNo,
+            type: seat.type,
+            price: seat.price,
+            status: "available"
+        })
+    }
+
+    return res.status(200).json({
+        message: "success",
+        data: Array.from(map)
+    })
 })
 
 const deleteSeats=asyncHandler(async(req,res)=>{

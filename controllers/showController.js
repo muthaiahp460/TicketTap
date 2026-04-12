@@ -45,22 +45,80 @@ const getShowById=asyncHandler(async(req,res)=>{
     return res.status(200).json({message:"success",data:shows})
 })
 
+const getShowByScreenId=asyncHandler(async(req,res)=>{
+    const ScreenId=req.params.screenId
+    const [shows]=await pool.query("select * from shows where screenId=?",[ScreenId])
+    return res.status(200).json({message:"success",data:shows})
+})
+
 const getShowByTheaterId=asyncHandler(async(req,res)=>{
     const theaterId=req.query.theaterId
-    const [shows]=await pool.query("select * from shows inner join screens on shows.screenId=screens.id where screens.theaterId=?",[theaterId])
+    const [shows]=await pool.query("select shows.id as id,shows.movieId,shows.screenId,shows.startTime,shows.endTime,screens.theaterId,screens.totalSeats,screens.screenNo,screens.rows,screens.cols from shows inner join screens on shows.screenId=screens.id where screens.theaterId=? order by screenId",[theaterId])
     return res.status(200).json({message:"success",data:shows})
 })
 
 const getSeatsByShowId=asyncHandler(async(req,res,next)=>{ //see ticket price for a show
     const showId=req.params.id
 
-    const [availableSeats]=await pool.query(
-        `select showSeats.id,showSeats.seatId,seats.rowNo,seats.seatNO,concat(seats.rowNo,seats.seatNO) as seatLabel,seats.type,showPrice.price,showSeats.status from 
-         showSeats inner join  seats on showSeats.seatId=seats.id 
-         inner join showPrice on showSeats.showId=showPrice.showId and seats.type=showPrice.seatType
-         where showSeats.showId=? order by showSeats.id`,[showId])
+    if (!showId)
+        throw new AppError(400, "Show Id cannot be empty")
 
-    return res.status(200).json({message:"success",data:availableSeats})
+    const [availableSeats] = await pool.query(
+        `SELECT 
+            showSeats.id,
+            showSeats.seatId,
+            seats.rowNo,
+            seats.seatNo,
+            CONCAT(seats.rowNo, seats.seatNo) AS seatLabel,
+            seats.type,
+            showPrice.price,
+            showSeats.status
+        FROM showSeats 
+        INNER JOIN seats 
+            ON showSeats.seatId = seats.id 
+        LEFT JOIN showPrice 
+            ON showSeats.showId = showPrice.showId 
+            AND seats.type = showPrice.seatType
+        WHERE showSeats.showId = ?
+        ORDER BY showSeats.id`,
+        [showId]
+    )
+
+    const map = new Map()
+    let currentRow = null
+
+    for (let seat of availableSeats) {
+
+        // 🔥 GAP (NULL seat)
+        if (!seat.rowNo || !seat.seatNo) {
+            if (currentRow) {
+                map.get(currentRow).push(null)
+            }
+            continue
+        }
+
+        // 🔥 New row detected
+        if (seat.rowNo !== currentRow) {
+            currentRow = seat.rowNo
+            map.set(currentRow, [])
+        }
+
+        map.get(currentRow).push({
+            id: seat.id,
+            seatId: seat.seatId,
+            rowNo: seat.rowNo,
+            seatNO: seat.seatNo,
+            seatLabel: seat.seatLabel,
+            type: seat.type,
+            price: seat.price,
+            status: seat.status
+        })
+    }
+
+    return res.status(200).json({
+        message: "success",
+        data: Array.from(map)
+    })
 })
 
 const calculatePrice=asyncHandler(async(req,res)=>{
@@ -75,4 +133,4 @@ const calculatePrice=asyncHandler(async(req,res)=>{
 })
 
 
-module.exports={addShow,getShowById,getShowByTheaterId,getSeatsByShowId,calculatePrice}
+module.exports={addShow,getShowById,getShowByTheaterId,getSeatsByShowId,calculatePrice,getShowByScreenId}
