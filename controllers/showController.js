@@ -53,7 +53,16 @@ const getShowByScreenId=asyncHandler(async(req,res)=>{
 
 const getShowByTheaterId=asyncHandler(async(req,res)=>{
     const theaterId=req.query.theaterId
-    const [shows]=await pool.query("select shows.id as id,shows.movieId,shows.screenId,shows.startTime,shows.endTime,screens.theaterId,screens.totalSeats,screens.screenNo,screens.rows,screens.cols from shows inner join screens on shows.screenId=screens.id where screens.theaterId=? order by screenId",[theaterId])
+    const [shows]=await pool.query(
+                `select shows.id as id,shows.movieId,shows.screenId,shows.startTime,shows.endTime,shows.showDate,
+                screens.theaterId,screens.totalSeats,screens.screenNo,screens.rows,screens.cols,
+                movies.name
+                from shows 
+                inner join screens 
+                on shows.screenId=screens.id 
+                inner join movies 
+                on shows.movieId=movies.id
+                where screens.theaterId=? order by screenId`,[theaterId])
     return res.status(200).json({message:"success",data:shows})
 })
 

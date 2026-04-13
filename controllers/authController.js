@@ -90,4 +90,26 @@ const login=asyncHandler(async(req,res)=>{
     return res.status(200).json({message:"Login successful"})
 })
 
-module.exports={registerAdmin,registerUser,login}
+
+const verifytoken=(req,res)=>{
+    try{
+        console.log(req.cookies)
+        const token=req.cookies.token
+        if(!token)
+            throw new AppError(401,"Unauthorized user")
+        const data=jwt.verify(token,process.env.JWT_SECRET_KEY)
+        console.log(data)
+        return res.status(200).json({success:true,role:data.role})
+    }
+    catch(err){
+        console.log(err)
+        throw new AppError(401,"unauthorized user")
+    }
+}
+
+const logout=(req,res)=>{
+    res.clearCookie("token");
+    res.status(200).json({success:true})
+}
+
+module.exports={registerAdmin,registerUser,login,verifytoken,logout}

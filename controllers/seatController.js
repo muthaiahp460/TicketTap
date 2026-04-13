@@ -21,10 +21,28 @@ const addSeat = asyncHandler(async (req, res) => {
     }
 
     // 🔥 DELETE existing layout
-    await pool.query(
-        "DELETE FROM seats WHERE screenId=?",
-        [screenId]
-    );
+    // 1. Remove pricing (optional but fine)
+await pool.query(
+  "DELETE FROM showPrice WHERE showId IN (SELECT id FROM shows WHERE screenId=?)",
+  [screenId]
+);
+
+// 2. Remove showSeats (THIS WAS MISSING)
+await pool.query(
+  `DELETE FROM showSeats 
+   WHERE seatId IN (
+     SELECT id FROM seats WHERE screenId = ?
+   )`,
+  [screenId]
+);
+
+// 3. Now safe to delete seats
+await pool.query(
+  "DELETE FROM seats WHERE screenId=?",
+  [screenId]
+);
+
+    
 
     // 🔥 Flatten layout
     const flatLayout = layout.flat().filter(Boolean);
