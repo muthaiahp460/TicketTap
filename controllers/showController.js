@@ -17,6 +17,7 @@ const addShow=asyncHandler(async(req,res,next)=>{ //later get the screenId with 
     const [result]=await connection.query("insert into shows (movieId,screenId,startTime,endTime,showDate) values(?,?,?,?,?)",[movieId,screenId,startTime,endTime,showDate])
     const [seats]=await connection.query("select id from seats where screenId=?",[screenId])
     const data=[]
+    
     const showId=result.insertId
     for(let seat of seats){
         data.push([seat.id,showId,"available"])
@@ -57,10 +58,10 @@ const getShowByTheaterId=asyncHandler(async(req,res)=>{
                 `select shows.id as id,shows.movieId,shows.screenId,shows.startTime,shows.endTime,shows.showDate,
                 screens.theaterId,screens.totalSeats,screens.screenNo,screens.rows,screens.cols,
                 movies.name
-                from shows 
-                inner join screens 
+                from screens  
+                left join shows
                 on shows.screenId=screens.id 
-                inner join movies 
+                left join movies 
                 on shows.movieId=movies.id
                 where screens.theaterId=? order by screenId`,[theaterId])
     return res.status(200).json({message:"success",data:shows})
@@ -81,7 +82,8 @@ const getSeatsByShowId=asyncHandler(async(req,res,next)=>{ //see ticket price fo
             CONCAT(seats.rowNo, seats.seatNo) AS seatLabel,
             seats.type,
             showPrice.price,
-            showSeats.status
+            showSeats.status,
+            DATE_FORMAT(showSeats.expiresAt, '%Y-%m-%dT%H:%i:%sZ') AS expiresAt
         FROM showSeats 
         INNER JOIN seats 
             ON showSeats.seatId = seats.id 
@@ -120,7 +122,8 @@ const getSeatsByShowId=asyncHandler(async(req,res,next)=>{ //see ticket price fo
             seatLabel: seat.seatLabel,
             type: seat.type,
             price: seat.price,
-            status: seat.status
+            status: seat.status,
+            expiresAt: seat.expiresAt
         })
     }
 

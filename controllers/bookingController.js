@@ -25,9 +25,8 @@ const bookTickets=asyncHandler(async(req,res,next)=>{
         const theaterId=theater[0].theaterId
         console.log(theaterId)
         await connection.beginTransaction()
-        const currTime=getCurrTime();
         
-        const updatedRows=await connection.query(`update showSeats set status=?,expiresAt=DATE_ADD(?,INTERVAL 5 MINUTE) where showId=? and seatId in (?) and (status=? or (status=? and expiresAt<?))`,["pending",currTime,showId,seatIds,"available","pending",currTime])
+    const updatedRows=await connection.query(`update showSeats set status=?,expiresAt=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 5 MINUTE) where showId=? and seatId in (?) and (status=? or (status=? and (expiresAt is null or expiresAt<UTC_TIMESTAMP())))`,["pending",showId,seatIds,"available","pending"])
         console.log(updatedRows[0].affectedRows)
         if(updatedRows[0].affectedRows!=seatIds.length)
             throw new AppError(404,"some selected seats are not available")
@@ -40,6 +39,7 @@ const bookTickets=asyncHandler(async(req,res,next)=>{
              const total=totalPrice[0].price;
         if(!total)
             throw new AppError(500,"Something went wrong")
+        currTime=getCurrTime()
         const [booking]=await connection.query("insert into bookings (userId,showId,totalAmount,status,theaterId,bookingDate,ticketCount) values (?,?,?,?,?,?,?)",[req.user.id,showId,total,"pending",theaterId,currTime,seatIds.length])
         console.log(booking)
         const data=[]
