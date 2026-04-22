@@ -1,12 +1,126 @@
 const {pool}=require("../config/dbConnection")
 const {AppError}=require("../errorHandler/appError") 
 const {asyncHandler}=require("../errorHandler/asyncHandler")
+const razorpay = require("../config/razorpay")
 
 const getCurrTime=()=>{
     const now = new Date();
     return now.toISOString().slice(0, 19).replace('T', ' ');
 }
 
+const paymentLogic = async (bookingId) => {
+  const connection = await pool.getConnection()
+  try {
+    await connection.beginTransaction()
+
+    const currTime = getCurrTime()
+
+    const [show] = await connection.query(
+      "select showId from bookings where id=?",
+      [bookingId]
+    )
+    const showId = show[0].showId
+
+    const [bookedSeats] = await connection.query(
+      `select showSeats.seatId 
+       from bookingSeat 
+       inner join showSeats 
+       on bookingSeat.seatId=showSeats.seatId 
+       and bookingSeat.showId=showSeats.showId 
+       where bookingSeat.bookingId=?`,
+      [bookingId]
+    )
+
+    const seatsBooked = bookedSeats.map(s => s.seatId)
+
+    const [lockedSeats] = await connection.query(
+      `select id from showSeats 
+       where seatId in (?) 
+       and status=? 
+       and expiresAt>? 
+       and showId=?`,
+      [seatsBooked, "pending", currTime, showId]
+    )
+
+    if (lockedSeats.length !== seatsBooked.length) {
+      await connection.query(
+        "insert into refund (bookingId) values (?)",
+        [bookingId]
+      )
+      await connection.commit()
+      throw new AppError(410, "Seat expired")
+    }
+
+    await connection.query(
+      `update showSeats set status=? 
+       where seatId in (?) and showId=?`,
+      ["booked", seatsBooked, showId]
+    )
+
+    await connection.query(
+      "update bookings set status=? where id=?",
+      ["completed", bookingId]
+    )
+
+    await connection.commit()
+
+  } catch (err) {
+    await connection.rollback()
+    throw err
+  } finally {
+    connection.release()
+  }
+}
+
+const crypto = require("crypto")
+
+const verifyPayment = asyncHandler(async (req, res) => {
+  const {
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+    bookingId,
+  } = req.body
+
+  const body = razorpay_order_id + "|" + razorpay_payment_id
+
+  const expectedSignature = crypto
+    .createHmac("sha256", process.env.KEY_SECRET)
+    .update(body)
+    .digest("hex")
+
+  if (expectedSignature !== razorpay_signature) {
+    throw new AppError(400, "Invalid payment")
+  }
+
+  // 🔥 call your existing booking confirmation logic
+  await paymentLogic(bookingId)
+
+  res.json({ success: true })
+})
+
+
+const createOrder = asyncHandler(async (req, res) => {
+  const { bookingId, amount } = req.body
+
+  if (!bookingId || !amount) {
+    throw new AppError(400, "Missing fields")
+  }
+
+  const options = {
+    amount: amount * 100, // ₹ → paise
+    currency: "INR",
+    receipt: `booking_${bookingId}`,
+  }
+
+  const order = await razorpay.orders.create(options)
+
+  return res.status(200).json({
+    orderId: order.id,
+    amount: order.amount,
+    currency: order.currency,
+  })
+})
 
 const bookTickets=asyncHandler(async(req,res,next)=>{
     const {showId,seatIds}=req.body
@@ -39,16 +153,26 @@ const bookTickets=asyncHandler(async(req,res,next)=>{
              const total=totalPrice[0].price;
         if(!total)
             throw new AppError(500,"Something went wrong")
-        currTime=getCurrTime()
+        const currTime=getCurrTime()
         const [booking]=await connection.query("insert into bookings (userId,showId,totalAmount,status,theaterId,bookingDate,ticketCount) values (?,?,?,?,?,?,?)",[req.user.id,showId,total,"pending",theaterId,currTime,seatIds.length])
         console.log(booking)
+
+        const [seatData] = await connection.query(
+        `select MIN(expiresAt) as expiresAt 
+        from showSeats 
+        where showId=? and seatId in (?)`,
+        [showId, seatIds]
+        )
+
+        const expiresAt = Date.now() + 5 * 60 * 1000
+
         const data=[]
         for(let seat of seatIds){
             data.push([booking.insertId,seat,showId])
         }
         await connection.query(`insert into bookingSeat (bookingId,seatId,showId) values ?`,[data])
         await connection.commit()
-        return res.status(201).json({message:"Movie booked inititated",bookingDetails:{id:booking.insertId,price:total}})
+        return res.status(201).json({bookingId:booking.insertId,amount:total,expiresAt})
     }
     catch(err){
         await connection.rollback()
@@ -140,4 +264,4 @@ const ordersbyId=asyncHandler(async(req,res)=>{
     return res.status(200).json({message:"success",data:result})
 })
 
-module.exports={bookTickets,payment,orders,ordersbyId}
+module.exports={bookTickets,payment,orders,ordersbyId,verifyPayment,createOrder}
