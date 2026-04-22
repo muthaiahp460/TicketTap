@@ -2,43 +2,81 @@ const {asyncHandler}=require("../errorHandler/asyncHandler")
 const {pool}=require("../config/dbConnection");
 const { AppError } = require("../errorHandler/appError");
 
-const addShow=asyncHandler(async(req,res,next)=>{ //later get the screenId with the help of theaterId stored in the jwt
-    const connection=await pool.getConnection()
-    try{
-    await connection.beginTransaction()
-    const {movieId,screenId,startTime,endTime,showDate}=req.body;
-    
-    const [existingShow]=await connection.query("select * from shows where screenId=? and showDate=? and ?<=endTime",[screenId,showDate,startTime])
-    if(existingShow.length>0)
-        throw new AppError(409,"a show is already scheduled in that time")
-    const [existingSeat]=await connection.query("select id from seats where screenId=?",[screenId])
-    if(existingSeat.length==0)
-        throw new AppError(404,"cannot schedule a show no seating arrangement found for the screen")
-    const [result]=await connection.query("insert into shows (movieId,screenId,startTime,endTime,showDate) values(?,?,?,?,?)",[movieId,screenId,startTime,endTime,showDate])
-    const [seats]=await connection.query("select id from seats where screenId=?",[screenId])
-    const data=[]
-    
-    const showId=result.insertId
-    for(let seat of seats){
-        data.push([seat.id,showId,"available"])
+const addShow = asyncHandler(async (req, res, next) => {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const { movieId, screenId, startTime, endTime, showDate } = req.body;
+
+    if (!movieId || !screenId || !startTime || !endTime || !showDate) {
+      throw new AppError(400, "All fields are required");
     }
 
-    await connection.query("insert into showSeats (seatId,showId,status) values ?",[data])
-
-    if(result.affectedRows===0)
-        throw new AppError(500,"cannot able to add show")
-    await connection.commit()
-    return res.status(201).json({message:"show added successfully",showId:result.insertId})
-    }
-    catch(err){
-        await connection.rollback();
-        next(err)
-    }
-    finally{
-        await connection.release()
+    if (startTime >= endTime) {
+      throw new AppError(400, "Invalid time range");
     }
 
-})
+    const [existingShow] = await connection.query(
+      `SELECT id FROM shows 
+       WHERE screenId = ? 
+       AND showDate = ? 
+       AND startTime < ? 
+       AND endTime > ?`,
+      [screenId, showDate, endTime, startTime]
+    );
+
+    if (existingShow.length > 0) {
+      throw new AppError(409, "A show is already scheduled in that time");
+    }
+
+    const [existingSeat] = await connection.query(
+      "SELECT id FROM seats WHERE screenId = ?",
+      [screenId]
+    );
+
+    if (existingSeat.length === 0) {
+      throw new AppError(
+        404,
+        "Cannot schedule a show: no seating arrangement found"
+      );
+    }
+
+    const [result] = await connection.query(
+      `INSERT INTO shows (movieId, screenId, startTime, endTime, showDate) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [movieId, screenId, startTime, endTime, showDate]
+    );
+
+    if (result.affectedRows === 0) {
+      throw new AppError(500, "Unable to add show");
+    }
+
+    const showId = result.insertId;
+
+    const seats = existingSeat;
+
+    const data = seats.map((seat) => [seat.id, showId, "available"]);
+
+    await connection.query(
+      "INSERT INTO showSeats (seatId, showId, status) VALUES ?",
+      [data]
+    );
+    await connection.commit();
+
+    return res.status(201).json({
+      message: "Show added successfully",
+      showId,
+    });
+
+  } catch (err) {
+    await connection.rollback();
+    next(err);
+  } finally {
+    connection.release();
+  }
+});
 
 const getShowById=asyncHandler(async(req,res)=>{
     const showId=req.params.id
@@ -55,7 +93,7 @@ const getShowByScreenId=asyncHandler(async(req,res)=>{
 const getShowByTheaterId=asyncHandler(async(req,res)=>{
     const theaterId=req.query.theaterId
     const [shows]=await pool.query(
-                `select shows.id as id,shows.movieId,shows.screenId,shows.startTime,shows.endTime,shows.showDate,
+                `select screens.id as id,shows.id as showId,shows.movieId,shows.screenId,shows.startTime,shows.endTime,shows.showDate,
                 screens.theaterId,screens.totalSeats,screens.screenNo,screens.rows,screens.cols,
                 movies.name
                 from screens  

@@ -16,7 +16,9 @@ const addScreen=asyncHandler(async(req,res)=>{
 })
 
 const getScreen=asyncHandler(async(req,res)=>{ 
+    console.log("muthu")
     const theaterId=req.query.theaterId
+    console.log(req.query.theaterId)
     const [owner]=await pool.query("select userId from theaters where id=?",[theaterId])
     if(owner[0].userId!=req.user.id)
         throw new AppError(401,"Acess restricted")
@@ -34,4 +36,11 @@ const getScreenById=asyncHandler(async(req,res)=>{
     return res.status(200).json({message:"success",data:screens[0]})
 })
 
-module.exports={addScreen,getScreen,getScreenById}
+
+const getScreenId=asyncHandler(async(req,res)=>{
+    const screenId=req.params.screenId
+    const [screens]=await pool.query("select id from screens where screenId=?",[screenId])
+    return res.status(200).json({message:"success",data:screens[0]})
+})
+
+module.exports={addScreen,getScreen,getScreenById,getScreenId}
