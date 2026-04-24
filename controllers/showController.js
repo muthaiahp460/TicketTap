@@ -101,7 +101,7 @@ const getShowByTheaterId=asyncHandler(async(req,res)=>{
                 on shows.screenId=screens.id 
                 left join movies 
                 on shows.movieId=movies.id
-                where screens.theaterId=? order by screenId`,[theaterId])
+                where screens.theaterId=? and (shows.showDate>curdate() or shows.showDate is null )  order by screenId desc`,[theaterId])
     return res.status(200).json({message:"success",data:shows})
 })
 
@@ -170,7 +170,6 @@ const getSeatsByShowId=asyncHandler(async(req,res,next)=>{ //see ticket price fo
         data: Array.from(map)
     })
 })
-
 const calculatePrice=asyncHandler(async(req,res)=>{
     const {seatIds,showId}=req.body
     if(seatIds.length<=0)

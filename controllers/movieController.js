@@ -59,7 +59,7 @@ const getMovieshows=asyncHandler(async(req,res)=>{
         from screens 
         inner join shows on shows.screenId=screens.id
         inner join theaters on screens.theaterId=theaters.id 
-        where shows.movieId=? order by fullDate asc`,[movieId]);
+        where shows.movieId=? and shows.showDate>=curdate() order by fullDate asc`,[movieId]);
     return res.status(200).json({message:"success",data:data})
 })
 

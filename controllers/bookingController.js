@@ -93,7 +93,7 @@ const verifyPayment = asyncHandler(async (req, res) => {
     throw new AppError(400, "Invalid payment")
   }
 
-  // 🔥 call your existing booking confirmation logic
+  //  call your existing booking confirmation logic
   await paymentLogic(bookingId)
 
   res.json({ success: true })
@@ -224,17 +224,35 @@ const payment=asyncHandler(async(req,res,next)=>{
 
 })
 
-const orders=asyncHandler(async(req,res)=>{
-    const userId=req.user.id
-    const [result]=await pool.query(
-        `select bookings.id,theaters.name as theaterName,bookings.status,shows.showDate,movies.name,bookings.totalAmount as price,
-        case when shows.showDate>DATE_ADD(Now(),interval 1 day) then 1 else 0 end as cancellable
-        from bookings inner join shows inner join movies  inner join theaters on 
-        bookings.showId=shows.id and shows.movieId=movies.id and bookings.theaterId=theaters.id
-        where bookings.userId=?`,[userId]
-    )
-    return res.status(200).json({message:"success",data:result})
-})
+const orders = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  const [result] = await pool.query(
+    `SELECT 
+        bookings.id,
+        theaters.name AS theaterName,
+        bookings.status,
+        shows.showDate,
+        shows.startTime,
+        movies.name AS movieName,
+        bookings.totalAmount AS price
+
+     FROM bookings
+     INNER JOIN shows ON bookings.showId = shows.id
+     INNER JOIN movies ON shows.movieId = movies.id
+     INNER JOIN theaters ON bookings.theaterId = theaters.id
+
+     WHERE bookings.userId = ?
+
+     ORDER BY shows.showDate DESC, shows.startTime DESC`,
+    [userId]
+  );
+
+  return res.status(200).json({
+    message: "success",
+    data: result,
+  });
+});
 
 const ordersbyId=asyncHandler(async(req,res)=>{
     const bookingId=req.query.bookingId

@@ -170,47 +170,82 @@ const deleteSeats=asyncHandler(async(req,res)=>{
     return res.status(200).json({message:"seats deleted successfully"})
 })
 
-const setSeatPrices=asyncHandler(async(req,res)=>{
-    const showId=parseInt(req.query.showId)
-    if(!showId)
-        throw new AppError(400,"Show Id cannot be empty")
-    let {normalPrice,premiumPrice,loungePrice}=req.body
-    if(!normalPrice || !premiumPrice || !loungePrice)
-        throw new AppError(400,"All price fields are required")
-    normalPrice=Number(normalPrice)
-    premiumPrice=Number(premiumPrice)
-    loungePrice=Number(loungePrice)
-    const [showDetails]=await pool.query("select screenId from shows where id=?",[showId])
-    if(showDetails.length==0)
-        throw new AppError(404,"Show not found")
-    const [existingSeats]=await pool.query("select id from seats where screenId=?",[showDetails[0].screenId])
-    if(existingSeats.length==0)
-        throw new AppError(404,"seating arrangement doesnt exist for this screen")
+const setSeatPrices = asyncHandler(async (req, res) => {
+  console.log("API HIT")
+  console.log("SHOW ID:", req.query.showId)
+  const showId = parseInt(req.query.showId)
 
-    const [existingPricing]=await pool.query("select * from showPrice where showId=?",[showId])
-    if(existingPricing.length>0){
-        await pool.query(`update showPrice 
-                          set price= CASE 
-                              when seatType="normal" then  ?
-                              when seatType="premium" then ?
-                              when seatType="lounge" then ?
-                          END
-                          where showId=?`,[normalPrice,premiumPrice,loungePrice,showId])
-        return res.status(200).json({message:"Seat prices updated successfully"})
-    }
-    else{
-        await pool.query(`insert into showPrice (seatType,price,showId) 
-                          values 
-                          ('normal',?,?),
-                          ('premium',?,?),
-                          ('lounge',?,?)`,
-                        [
-                            normalPrice,showId,
-                            premiumPrice,showId,
-                            loungePrice,showId
-                        ])
-        return res.status(200).json({message:"Seat prices set successfully"})
-    }
+  if (!showId)
+    throw new AppError(400, "Show Id cannot be empty")
+
+  let { normalPrice, premiumPrice, loungePrice } = req.body
+
+  // ✅ FIXED VALIDATION
+  if (
+    normalPrice === undefined ||
+    premiumPrice === undefined ||
+    loungePrice === undefined
+  )
+    throw new AppError(400, "All price fields are required")
+
+  normalPrice = Number(normalPrice)
+  premiumPrice = Number(premiumPrice)
+  loungePrice = Number(loungePrice)
+
+  console.log("REQ:", { showId, normalPrice, premiumPrice, loungePrice })
+
+  const [showDetails] = await pool.query(
+    "select screenId from shows where id=?",
+    [showId]
+  )
+
+  if (showDetails.length == 0)
+    throw new AppError(404, "Show not found")
+
+  const [existingSeats] = await pool.query(
+    "select id from seats where screenId=?",
+    [showDetails[0].screenId]
+  )
+
+  if (existingSeats.length == 0)
+    throw new AppError(404, "seating arrangement doesnt exist for this screen")
+
+  const [existingPricing] = await pool.query(
+    "select * from showPrice where showId=?",
+    [showId]
+  )
+
+  if (existingPricing.length > 0) {
+    await pool.query(
+      `update showPrice 
+       set price = CASE seatType
+         WHEN 'normal' THEN ?
+         WHEN 'premium' THEN ?
+         WHEN 'lounge' THEN ?
+       END
+       where showId=?`,
+      [normalPrice, premiumPrice, loungePrice, showId]
+    )
+
+    return res.status(200).json({ message: "Seat prices updated successfully" })
+  } else {
+    const result = await pool.query(
+      `insert into showPrice (seatType,price,showId) 
+       values 
+       ('normal',?,?),
+       ('premium',?,?),
+       ('lounge',?,?)`,
+      [
+        normalPrice, showId,
+        premiumPrice, showId,
+        loungePrice, showId
+      ]
+    )
+
+    console.log("INSERT RESULT:", result)
+
+    return res.status(200).json({ message: "Seat prices set successfully" })
+  }
 })
 
 module.exports={addSeat,getSeats,deleteSeats,setSeatPrices}
