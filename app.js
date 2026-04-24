@@ -14,6 +14,8 @@ const authRoute=require("./routes/authRouter")
 const bookRoute=require("./routes/bookingRouter")
 const analysisRoute=require("./routes/analysisRouter")
 const cors=require("cors")
+require("./Corn")
+
 const limitter=ratelimit(
     {
         windowMs:1*60*1000,

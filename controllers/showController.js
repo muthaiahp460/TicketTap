@@ -43,10 +43,17 @@ const addShow = asyncHandler(async (req, res, next) => {
       );
     }
 
+    const istDateTime = `${showDate}T${startTime}+05:30`;
+
+    const utcDateTime = new Date(istDateTime)
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " ");
+
     const [result] = await connection.query(
-      `INSERT INTO shows (movieId, screenId, startTime, endTime, showDate) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [movieId, screenId, startTime, endTime, showDate]
+      `INSERT INTO shows (movieId, screenId, startTime, endTime, showDate,showTiming) 
+       VALUES (?, ?, ?, ?, ?,?)`,
+      [movieId, screenId, startTime, endTime, showDate,utcDateTime]
     );
 
     if (result.affectedRows === 0) {
