@@ -7,6 +7,11 @@ const getCurrTime=()=>{
     return now.toISOString().slice(0, 19).replace('T', ' ');
 }
 
+const getTrendingMovies=asyncHandler(async(req,res)=>{
+    const [data]=await pool.query("select * from topmovies");
+    return res.status(200).json({success:true,data:data})
+})
+
 const addMovie=asyncHandler(async(req,res)=>{
     const {name,img,duration,language,genre,cast,rating,certificate}=req.body
     if(!name || !duration || !language || !genre || !cast || !rating || !img || !certificate)
@@ -26,7 +31,7 @@ const getMovies=asyncHandler(async(req,res)=>{
     const movieName=req.query.name;
     console.log(movieName)
     if(!movieName){
-        const [movies]=await pool.query("select id,name,language,rating,movieImg,certificate from movies limit 12")
+        const [movies]=await pool.query("select id,name,language,rating,movieImg,certificate from movies limit 20   ")
         return res.status(200).json({message:"success",data:movies})
     }
     else{
@@ -73,4 +78,4 @@ const getRecentBookings=asyncHandler(async(req,res)=>{
     return res.status(200).json({message:"success",data:result[0].totalTickets})
 })
 
-module.exports={addMovie,getMovies,getMoviesById,getMovieshows,getRecentBookings}
+module.exports={addMovie,getMovies,getMoviesById,getMovieshows,getRecentBookings,getTrendingMovies}

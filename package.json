@@ -1,0 +1,28 @@
+{
+  "name": "ticket-booking-system",
+  "version": "1.0.0",
+  "description": "Error codes\r 200-success\r 201-created\r 400-client bad request\r 401-unauthorized\r 403-authorized but access restricted (user trying to access admin routes)\r 409-conflict (username already exist)\r 429-rate limiting\r 500-internal server error",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muthaiahp460/TicketTap.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/muthaiahp460/TicketTap/issues"
+  },
+  "homepage": "https://github.com/muthaiahp460/TicketTap#readme",
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "corn": "^0.0.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "razorpay": "^2.9.6"
+  }
+}

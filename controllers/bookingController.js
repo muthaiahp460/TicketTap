@@ -134,14 +134,14 @@ const bookTickets=asyncHandler(async(req,res,next)=>{
         if(!screen[0])
             throw new AppError(404,`show ${showId} not found`)
         const screenId=screen[0].screenId
-        console.log(screenId)
+        
         const [theater]=await pool.query("select theaterId from screens where id=?",[screenId])
         const theaterId=theater[0].theaterId
-        console.log(theaterId)
+      
         await connection.beginTransaction()
         
     const updatedRows=await connection.query(`update showSeats set status=?,expiresAt=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 5 MINUTE) where showId=? and seatId in (?) and (status=? or (status=? and (expiresAt is null or expiresAt<UTC_TIMESTAMP())))`,["pending",showId,seatIds,"available","pending"])
-        console.log(updatedRows[0].affectedRows)
+        
         if(updatedRows[0].affectedRows!=seatIds.length)
             throw new AppError(404,"some selected seats are not available")
 
@@ -149,13 +149,12 @@ const bookTickets=asyncHandler(async(req,res,next)=>{
             `select sum(showPrice.price) as price from  showSeats inner join  seats on showSeats.seatId=seats.id 
              inner join showPrice on showSeats.showId=showPrice.showId and seats.type=showPrice.seatType
              where showSeats.seatId in (?) and showSeats.showId=?`,[seatIds,showId])
-        console.log(totalPrice)
-             const total=totalPrice[0].price;
+        const total=totalPrice[0].price
         if(!total)
             throw new AppError(500,"Something went wrong")
         const currTime=getCurrTime()
         const [booking]=await connection.query("insert into bookings (userId,showId,totalAmount,status,theaterId,bookingDate,ticketCount) values (?,?,?,?,?,?,?)",[req.user.id,showId,total,"pending",theaterId,currTime,seatIds.length])
-        console.log(booking)
+        
 
         const [seatData] = await connection.query(
         `select MIN(expiresAt) as expiresAt 
@@ -256,7 +255,7 @@ const orders = asyncHandler(async (req, res) => {
 
 const ordersbyId=asyncHandler(async(req,res)=>{
     const bookingId=req.query.bookingId
-    console.log(bookingId)
+   
     const [user]=await pool.query("select userId from bookings where bookings.id=?",[bookingId])
     if(user[0].userId!=req.user.id)
         throw new AppError(401,"Entry restricted")

@@ -108,7 +108,8 @@ const getShowByTheaterId=asyncHandler(async(req,res)=>{
                 on shows.screenId=screens.id 
                 left join movies 
                 on shows.movieId=movies.id
-                where screens.theaterId=? and (shows.showDate>curdate() or shows.showDate is null )  order by screenId desc`,[theaterId])
+                where screens.theaterId=? and (shows.showDate>curdate() or shows.showDate is null or (shows.showDate=curdate() and shows.startTime>=DATE_SUB(CURTIME(), INTERVAL 1 HOUR)
+                ))  order by screenId desc`,[theaterId])
     return res.status(200).json({message:"success",data:shows})
 })
 
