@@ -18,12 +18,21 @@
   },
   "homepage": "https://github.com/muthaiahp460/TicketTap#readme",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
-    "corn": "^0.0.1",
+    "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.4.1",
+    "express-validator": "^7.0.0",
     "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.6.5",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.7",
+    "qrcode": "^1.5.4",
     "razorpay": "^2.9.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
   }
 }

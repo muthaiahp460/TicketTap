@@ -3,9 +3,7 @@ const {AppError}=require("../errorHandler/appError")
 const {asyncHandler}=require("../errorHandler/asyncHandler")
 
 const getTheaterAnalytics = asyncHandler(async (req, res) => {
-  console.log(req.query)
   const { startDate, endDate } = req.query;
-  console.log(startDate)
   const [theaterRows] = await pool.query(
     "SELECT id FROM theaters WHERE userId = ?",
     [req.user.id]
@@ -48,11 +46,17 @@ const getTheaterAnalytics = asyncHandler(async (req, res) => {
 });
 
 const TheatermovieRevenue=asyncHandler(async(req,res)=>{
-    const theaterId=req.params.id
-    const movieId=req.query.movieId
+    const theaterId=parseInt(req.params.id, 10);
+    const movieId=parseInt(req.query.movieId, 10);
+    
+    if(isNaN(theaterId) || theaterId < 1)
+        throw new AppError(400, "Invalid theater ID");
+    if(isNaN(movieId) || movieId < 1)
+        throw new AppError(400, "Invalid movie ID");
+    
     const [owner]=await pool.query("select userId from theaters where id=?",[theaterId])
-    if(owner[0].userId!==req.user.id)
-        throw new AppError(401,"Entry restricted")
+    if(!owner.length || owner[0].userId!==req.user.id)
+        throw new AppError(403,"Entry restricted")
     const [result]=await pool.query(
         `select coalesce(sum(totalAmount),0) as revenue from bookings 
          inner join shows on bookings.showId=shows.id

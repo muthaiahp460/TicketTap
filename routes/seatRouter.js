@@ -3,7 +3,7 @@ const {getSeats,deleteSeats, setSeatPrices, addSeat}=require("../controllers/sea
 const {protect, isAdmin}=require("../middleware/authMiddleware")
 const router=express.Router();
 
-router.post("/add",addSeat)
+router.post("/add",protect,isAdmin,addSeat)
 router.get("/",getSeats)
 router.delete("/",protect,isAdmin,deleteSeats)
 router.post("/price",protect,isAdmin,setSeatPrices)

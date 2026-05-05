@@ -15,6 +15,7 @@ const bookRoute=require("./routes/bookingRouter")
 const analysisRoute=require("./routes/analysisRouter")
 const cors=require("cors")
 require("./Corn")
+require('dotenv').config();
 
 const limitter=ratelimit(
     {
@@ -26,7 +27,8 @@ const limitter=ratelimit(
 
 app.use(limitter)
 app.use(cors({
-    origin:"http://localhost:5173",
+    origin:["http://localhost:5173",
+        process.env.FRONTEND_URL],
     credentials: true
 }))
 app.get('/',(req,res)=>{

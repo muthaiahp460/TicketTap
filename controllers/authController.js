@@ -36,8 +36,10 @@ const registerAdmin=asyncHandler(async(req,res)=>{
     const [result]=await pool.query("insert into users (name,email,password,phoneNo,role) values (?,?,?,?,?)",[name,email,hashedPassword,phoneNo,role])
     const token=jwt.sign({"id":result.insertId,"role":role},process.env.JWT_SECRET_KEY,{expiresIn:'1d'})
     res.cookie("token",token,{
-            httponly:true,
-            samesite:'strict'
+            httpOnly:true,
+            samesite:'strict',
+            secure:'true',
+            maxAge:24*60*60*1000
         }
     )
     return res.status(201).json({message:"Admin created successfully"})
@@ -83,8 +85,9 @@ const login=asyncHandler(async(req,res)=>{
         throw new AppError(400,"Invalid password")
     const token=jwt.sign({"id":user.id,"role":user.role},process.env.JWT_SECRET_KEY,{expiresIn:'1d'})
     res.cookie("token",token,{
-            httponly:true,
-            samesite:'strict'
+            httpOnly:true,
+            samesite:'None',
+            secure:'true'
         }
     )
     return res.status(200).json({message:"Login successful"})

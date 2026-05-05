@@ -86,14 +86,18 @@ const addShow = asyncHandler(async (req, res, next) => {
 });
 
 const getShowById=asyncHandler(async(req,res)=>{
-    const showId=req.params.id
-    const [shows]=await pool.query("select * from shows where id=?",showId)
+    const showId=parseInt(req.params.id, 10);
+    if(isNaN(showId) || showId < 1)
+        throw new AppError(400, "Invalid show ID");
+    const [shows]=await pool.query("select * from shows where id=?",[showId])
     return res.status(200).json({message:"success",data:shows})
 })
 
 const getShowByScreenId=asyncHandler(async(req,res)=>{
-    const ScreenId=req.params.screenId
-    const [shows]=await pool.query("select * from shows where screenId=?",[ScreenId])
+    const screenId=parseInt(req.params.screenId, 10);
+    if(isNaN(screenId) || screenId < 1)
+        throw new AppError(400, "Invalid screen ID");
+    const [shows]=await pool.query("select * from shows where screenId=?",[screenId])
     return res.status(200).json({message:"success",data:shows})
 })
 

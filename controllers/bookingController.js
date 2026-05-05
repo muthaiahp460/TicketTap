@@ -2,6 +2,7 @@ const {pool}=require("../config/dbConnection")
 const {AppError}=require("../errorHandler/appError") 
 const {asyncHandler}=require("../errorHandler/asyncHandler")
 const razorpay = require("../config/razorpay")
+const QRCode = require("qrcode");
 
 const getCurrTime=()=>{
     const now = new Date();
@@ -95,6 +96,19 @@ const verifyPayment = asyncHandler(async (req, res) => {
 
   //  call your existing booking confirmation logic
   await paymentLogic(bookingId)
+
+  // generate QR
+  const qrCode = await QRCode.toDataURL(bookingId.toString(),{
+  width: 300,          // increase size
+  margin: 2,           // spacing around QR
+  errorCorrectionLevel: "H"  // better scanning
+  })
+
+  // save QR in DB
+  await pool.query(
+    "UPDATE bookings SET qr_code=? WHERE id=?",
+    [qrCode, bookingId]
+  )
 
   res.json({ success: true })
 })

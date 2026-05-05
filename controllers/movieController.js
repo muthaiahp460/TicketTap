@@ -29,13 +29,13 @@ const addMovie=asyncHandler(async(req,res)=>{
 
 const getMovies=asyncHandler(async(req,res)=>{
     const movieName=req.query.name;
-    console.log(movieName)
     if(!movieName){
         const [movies]=await pool.query("select id,name,language,rating,movieImg,certificate from movies limit 20   ")
         return res.status(200).json({message:"success",data:movies})
     }
     else{
-        const [movies]=await pool.query("select id,name,language,rating,year,movieImg,certificate from movies where name like ?",[`${movieName}%`])
+        const sanitized = movieName.replace(/[\\%_]/g, '\\$&');
+        const [movies]=await pool.query("select id,name,language,rating,year,movieImg,certificate from movies where name like ? escape '\\\\'",[`${sanitized}%`])
         if(movies.length==0)
             throw new AppError(404,"movie not found")
         return res.status(200).json({message:"success",data:movies})
@@ -43,7 +43,9 @@ const getMovies=asyncHandler(async(req,res)=>{
 })
 
 const getMoviesById=asyncHandler(async(req,res)=>{
-    const movieId=req.params.id;
+    const movieId=parseInt(req.params.id, 10);
+    if(isNaN(movieId) || movieId < 1)
+        throw new AppError(400, "Invalid movie ID");
     const [movies]=await pool.query("select * from movies where id=?",[movieId])
     if(movies.length==0)
         throw new AppError(404,"movie not found")
@@ -51,7 +53,9 @@ const getMoviesById=asyncHandler(async(req,res)=>{
 })
 
 const getMovieshows=asyncHandler(async(req,res)=>{
-    const movieId=req.params.id;
+    const movieId=parseInt(req.params.id, 10);
+    if(isNaN(movieId) || movieId < 1)
+        throw new AppError(400, "Invalid movie ID");
     const [data]=await pool.query(`
         select shows.id,shows.startTime,screens.screenNo,theaters.name as theaterName,theaters.img as img,
         Date(showDate) as fullDate,
@@ -69,7 +73,9 @@ const getMovieshows=asyncHandler(async(req,res)=>{
 })
 
 const getRecentBookings=asyncHandler(async(req,res)=>{
-    const movieId=req.params.id
+    const movieId=parseInt(req.params.id, 10);
+    if(isNaN(movieId) || movieId < 1)
+        throw new AppError(400, "Invalid movie ID");
     const [result]=await pool.query(`
         select sum(ticketCount) as totalTickets from
         bookings inner join shows on bookings.showId=shows.id
