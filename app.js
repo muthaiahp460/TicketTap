@@ -28,6 +28,7 @@ const limitter=ratelimit(
 console.log(process.env.FRONTEND_URL)
 
 app.use(limitter)
+app.set("trust proxy", 1);
 app.use(cors({
     origin:process.env.FRONTEND_URL,
     credentials: true
