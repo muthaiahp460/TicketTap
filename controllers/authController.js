@@ -17,8 +17,8 @@ const registerUser=asyncHandler(async(req,res)=>{
     const token=jwt.sign({"id":result.insertId,"role":role},process.env.JWT_SECRET_KEY,{expiresIn:'1d'})
     res.cookie("token",token,{
             httpOnly: true,
-            secure: false,
-            sameSite: "lax"
+            secure: true,
+            sameSite: "None"
         }
     )
     return res.status(201).json({message:"User created successfully"})
@@ -37,8 +37,8 @@ const registerAdmin=asyncHandler(async(req,res)=>{
     const token=jwt.sign({"id":result.insertId,"role":role},process.env.JWT_SECRET_KEY,{expiresIn:'1d'})
     res.cookie("token",token,{
             httpOnly:true,
-            samesite:'strict',
-            secure:'true',
+            sameSite:'None',
+            secure:true,
             maxAge:24*60*60*1000
         }
     )
@@ -86,8 +86,8 @@ const login=asyncHandler(async(req,res)=>{
     const token=jwt.sign({"id":user.id,"role":user.role},process.env.JWT_SECRET_KEY,{expiresIn:'1d'})
     res.cookie("token",token,{
             httpOnly:true,
-            samesite:'None',
-            secure:'true'
+            sameSite:'None',
+            secure:true
         }
     )
     return res.status(200).json({message:"Login successful"})
@@ -102,7 +102,7 @@ const verifytoken=(req,res)=>{
             return res.json({ user: null });
         const data=jwt.verify(token,process.env.JWT_SECRET_KEY)
         console.log(data)
-        return res.status(200).json({success:true,role:data.role})
+        return res.json({ user: data });
     }
     catch(err){
         console.log(err)
