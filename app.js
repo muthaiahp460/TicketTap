@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express=require('express')
 const app=express()
 const ratelimit=require("express-rate-limit")
@@ -15,7 +16,7 @@ const bookRoute=require("./routes/bookingRouter")
 const analysisRoute=require("./routes/analysisRouter")
 const cors=require("cors")
 require("./Corn")
-require('dotenv').config();
+
 
 const limitter=ratelimit(
     {
@@ -24,6 +25,7 @@ const limitter=ratelimit(
     }
 )
 
+console.log(process.env.FRONTEND_URL)
 
 app.use(limitter)
 app.use(cors({
