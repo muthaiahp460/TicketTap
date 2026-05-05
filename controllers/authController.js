@@ -99,7 +99,7 @@ const verifytoken=(req,res)=>{
         console.log(req.cookies)
         const token=req.cookies.token
         if(!token)
-            throw new AppError(401,"Unauthorized user")
+            return res.json({ user: null });
         const data=jwt.verify(token,process.env.JWT_SECRET_KEY)
         console.log(data)
         return res.status(200).json({success:true,role:data.role})
