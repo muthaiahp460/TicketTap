@@ -5,6 +5,68 @@ const jwt=require("jsonwebtoken")
 const {AppError}=require("../errorHandler/appError")
 require('dotenv').config()
 
+const supabase=require("../utils/supabase.js");
+
+const googleLogin = async(req,res)=>{
+
+try{
+
+const { token } = req.body;
+
+if(!token)
+    return res.status(400).json({message:"Token missing"}); 
+const {data:{ user },error}=await supabase.auth.getUser(token);
+
+if(error || !user)
+    return res.status(401).json({message:"Invalid user"});
+
+// CHECK USER EXISTS
+const [existingUser] =await pool.query("SELECT * FROM users WHERE email=?",[user.email]);
+
+let currentUser;
+// IF NEW USER → INSERT
+if(existingUser.length===0){
+await pool.query(`INSERT INTO users(name,email,google_id,avatar,role) VALUES(?,?,?,?,?)`,[user.user_metadata.full_name,user.email,user.id,user.user_metadata.avatar_url,"user"]);
+
+// FETCH INSERTED USER
+const [newUser]=await pool.query(
+"SELECT * FROM users WHERE email=?",
+[user.email]
+);
+
+currentUser=newUser[0];
+}
+else{
+currentUser=existingUser[0];
+
+}
+
+// CREATE JWT
+const jwtToken =jwt.sign({"id":currentUser.id,"role":"user"},
+process.env.JWT_SECRET_KEY,
+{
+ expiresIn:"7d"
+}
+);
+
+
+// STORE COOKIE
+res.cookie(
+"token",
+jwtToken,
+{
+ httpOnly:true,
+ secure:false, // true in production
+ sameSite:"Lax"
+}
+);
+return res.json({success:true,user:currentUser});
+}
+catch(err){
+console.log(err);
+return res.status(500).json({message:"Server error"});
+}
+}
 const registerUser=asyncHandler(async(req,res)=>{
     console.log("user")
     const {name,email,phoneNo,password}=req.body
@@ -115,4 +177,4 @@ const logout=(req,res)=>{
     res.status(200).json({success:true})
 }
 
-module.exports={registerAdmin,registerUser,login,verifytoken,logout}
+module.exports={googleLogin,registerAdmin,registerUser,login,verifytoken,logout}

@@ -1,4 +1,4 @@
-const {register, login, registerUser, registerAdmin, verifytoken, logout}=require("../controllers/authController")
+const {register, login, registerUser, registerAdmin, verifytoken, logout, googleLogin}=require("../controllers/authController")
 const express=require("express")
 const {validateRegister}=require("../validator/validate")
 const ratelimit=require("express-rate-limit")
@@ -16,5 +16,6 @@ router.post("/register/admin",validateRegister,validateMiddleware,registerAdmin)
 router.post("/login",login)
 router.get("/verify",verifytoken)
 router.post("/logout",logout)
+router.post("/google", googleLogin);
 
 module.exports=router
