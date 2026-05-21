@@ -10,7 +10,7 @@ const supabase=require("../utils/supabase.js");
 const googleLogin = async(req,res)=>{
 
 try{
-
+console.log(req.body)
 const { token } = req.body;
 
 if(!token)
