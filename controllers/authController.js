@@ -56,8 +56,8 @@ res.cookie(
 jwtToken,
 {
  httpOnly:true,
- secure:false, // true in production
- sameSite:"Lax"
+ secure:true,
+ sameSite:"None"
 }
 );
 return res.json({success:true,user:currentUser});
